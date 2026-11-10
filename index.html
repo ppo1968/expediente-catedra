@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta name="robots" content="noindex,nofollow">
+<link rel="stylesheet" href="acceso.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Expediente de Cátedra</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="acceso" role="dialog" aria-modal="true" aria-labelledby="acTit">
+  <form id="acForm" class="ac-caja" autocomplete="off">
+    <img src="marca/Logosimbolo-negativo.png" alt="Universidad de Murcia" class="ac-logo">
+    <h1 id="acTit">Expediente de Cátedra</h1>
+    <p class="ac-sub">Currículum vitae y documentos justificativos. Acceso reservado a la comisión.</p>
+    <label for="acClave">Clave de acceso</label>
+    <div class="ac-fila">
+      <input id="acClave" type="password" required autofocus spellcheck="false" autocapitalize="off">
+      <button type="submit" id="acEntrar">Entrar</button>
+    </div>
+    <p id="acMsg" role="status"></p>
+  </form>
+</div>
+
+<header class="cab">
+  <img src="marca/Logosimbolo-negativo.png" alt="Universidad de Murcia">
+  <div class="cabder">
+    <div class="modo" role="group" aria-label="Vista"><button id="mT" class="on">Trabajo</button><button id="mV">Tribunal</button></div>
+    <button class="bcab nu" id="bNu" hidden></button>
+    <button class="bcab" id="bSC" hidden></button>
+    <button class="bcab" id="bDes" disabled>Deshacer</button>
+    <button class="bcab blanco" id="bEd">Editar menú</button>
+  </div>
+</header>
+<nav id="menu" aria-label="Menú principal"></nav>
+<div id="avNu" hidden><span id="avTx"></span><button id="avAct">Revisar y actualizar</button><button id="avLuego">Más tarde</button></div>
+<main id="main">
+  <div id="vista">
+    <div id="columnas">
+      <div id="lista"><small id="sel1">Currículum</small><h1 id="sel2">Elige un apartado en el menú</h1><div id="meritos"></div></div>
+      <aside id="visor" hidden><header><b id="vTit"></b><button id="vCerrar">Cerrar</button></header><iframe id="vMarco" title="PDF del mérito"></iframe></aside>
+    </div>
+  </div>
+  <div id="editor" hidden></div>
+</main>
+<div id="toast" role="status"></div>
+<script src="acceso.js"></script>
+</body>
+</html>
