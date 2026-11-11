@@ -11,3 +11,11 @@
 #acEntrar:disabled { opacity: .6; cursor: progress; }
 #acMsg { min-height: 1.5em; margin: 14px 0 0; color: #ffb3a6; }
 #acMsg.ok { color: #c9d3d5; }
+
+.ac-campo { flex: 1; min-width: 0; position: relative; display: flex; }
+.ac-campo #acClave { padding-right: 52px; }
+#acVer { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 42px; height: 38px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 4px; background: transparent; color: #51676d; cursor: pointer; }
+#acVer:hover { background: #eef2f3; color: #002028; }
+#acVer .ojo-c { display: none; }
+#acVer[aria-pressed="true"] .ojo-a { display: none; }
+#acVer[aria-pressed="true"] .ojo-c { display: inline; }

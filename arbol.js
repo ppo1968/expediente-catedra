@@ -56,20 +56,25 @@
     ].map(([cod, nom, dir]) => ({ cod, nom, dir: `03_Complementos/${dir}` })) },
   ];
   // Menú inicial: se deduce del árbol, con los epígrafes intermedios como títulos no pulsables.
-  ARBOL.menu = [['Inicio', null]];
+  // Nombres cortos en el menú; el nombre completo del CVN sale como título dentro.
+  ARBOL.corto = { 'José Pino Ortega': 'Perfil', 'Formación académica recibida': 'Formación', 'Actividad docente': 'Docencia', 'Experiencia científica y tecnológica': 'Investigación', 'Actividades científicas y tecnológicas': 'Investigación', Complementos: 'Complementos' };
+  // v0.16: el bloque 6 del CVN (Actividades científicas y tecnológicas) va dentro de Investigación, con su nombre como título.
+  ARBOL.menu = [['Inicio', null], ['Trayectoria', null, 'T']];
   for (const g of ARBOL) {
     if (g.gr === 'Por decidir') continue;
-    if (g.directo) { ARBOL.menu.push([g.gr, null, g.aps[0].cod]); continue; }
-    const l = [];
+    if (g.directo) continue; // el resumen libre va en la portada, en «Sobre mí»
+    const nom = ARBOL.corto[g.gr] || g.gr, previo = ARBOL.menu.find((x) => x[0] === nom);
+    const l = previo ? previo[1] : [];
     let ult = null;
+    if (previo) l.push(['', g.gr, 'h']);
     for (const a of g.aps) {
       if (a.sub && a.sub !== ult) l.push(['', a.sub, 'h']);
       ult = a.sub || null;
       l.push([a.cod, a.nom]);
     }
-    ARBOL.menu.push([g.gr, l]);
+    if (!previo) ARBOL.menu.push([nom, l]);
   }
-  ARBOL.menu.push(['Ajustes', [['', 'Publicar en la web'], ['', 'Generar HTML'], ['', 'Generar ejecutable para PC'], ['', 'Generar ejecutable para Mac'], ['', 'Generar ZIP'], ['', 'Menú vertical u horizontal'], ['', 'Cerrar expediente'], ['', 'Documentos sin usar'], ['', 'Apartados eliminados']]]);
+  ARBOL.menu.push(['Ajustes', [['', 'Publicar en la web'], ['', 'Generar HTML'], ['', 'Generar ejecutable para PC'], ['', 'Generar ejecutable para Mac'], ['', 'Generar ZIP'], ['', 'Generar carpeta del CV'], ['', 'Generar CV en Word (CVN)'], ['', 'Completar y clasificar méritos'], ['', 'Incorporar méritos nuevos'], ['', 'Menú vertical u horizontal'], ['', 'Cerrar expediente'], ['', 'Documentos sin usar'], ['', 'Apartados eliminados']]]);
   if (typeof module !== 'undefined' && module.exports) module.exports = ARBOL;
   else raiz.ARBOL = ARBOL;
 })(typeof window !== 'undefined' ? window : globalThis);
