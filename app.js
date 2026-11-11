@@ -13,7 +13,7 @@
   let quitando = false, generando = false, trabajo = !CONSULTA, filtroDocs = '', suelto = null, actual = null, sel = null, selSha = null, editando = false, abiertoB = 3, pilaMenu = [];
   const urlDe = (r) => (/^(data|blob):/.test(r) ? r : /^[A-Za-z]:\//.test(r) ? 'file:///' + r.split('/').map((x, i) => (i ? encodeURIComponent(x) : x)).join('/') : (P.baseUrl || '') + r.split('/').map(encodeURIComponent).join('/'));
   const buscar = (id) => P.datos.meritos.find((m) => m.id === id);
-  const nombreDe = (c) => { for (const [t, l, cd] of MENU) { if (cd === c) return t; for (const [k, n] of l || []) if (k === c) return n; } return c === 'SC' ? 'Sin clasificar' : c; };
+  const nombreDe = (c) => { for (const [t, l, cd] of MENU) { if (cd === c) return t; for (const [k, n] of l || []) if (k === c) return n; } const v = String(c || '').startsWith('v:') && (window.ARBOL.vistas || {})[String(c).slice(2)]; return c === 'SC' ? 'Sin clasificar' : v ? v.nom : APD(c).nom || c; };
 
   function aviso(t, o = {}) {
     const e = $('#toast');
@@ -66,7 +66,14 @@
   };
   const valorHtml = (p) => { const u = ligaDe(p); return u ? `<a href="#" data-url="${esc(u)}" title="Abrir enlace">${esc(p.v)}</a>` : conEnlaces(p.v); };
   const publico = (m) => !m.nota && !m.privado && m.cod !== 'SC';
-  const entradas = (c) => P.datos.meritos.filter((m) => m.cod === c && (trabajo || publico(m)));
+  // Un apartado del CVN muestra solo lo que no se ha llevado a una opción del menú (v0.17).
+  const entradas = (c) => P.datos.meritos.filter((m) => m.cod === c && !m.vista && (trabajo || publico(m)));
+  // v0.17: opciones del menú según las carpetas de E: («v:tesis», «v:ponencias»…). Agrupan méritos por su «vista».
+  const VISTAS = window.ARBOL.vistas || {};
+  const vistaDeCod = (c) => (String(c || '').startsWith('v:') ? String(c).slice(2) : null);
+  const todasDe = (c) => P.datos.meritos.filter((m) => m.cod === c && (trabajo || publico(m))); // el apartado del CVN entero
+  const deVista6_2 = () => (actual && actual.vista ? entradasMenu(actual.cm) : todasDe('6.2')); // Artículos, o Libros y capítulos
+  const entradasMenu = (c) => { const v = vistaDeCod(c); return v ? P.datos.meritos.filter((m) => m.vista === v && (trabajo || publico(m))) : entradas(c); };
   const marcarActivo = () => { if (!actual) return; const it = items.find((x) => x.firstElementChild.textContent === actual.bloque); if (it) it.classList.add('activo'); };
   function pintarCab() {
     document.body.classList.toggle('vert', (P.ajustes.menu || 'horizontal') === 'vertical');
@@ -107,17 +114,20 @@
   window.addEventListener('resize', () => pintarPanel());
   const cerrar = () => { items.forEach((x) => { x.classList.remove('abierto'); x.firstElementChild.setAttribute('aria-expanded', 'false'); }); const p = $('#lnPop'); if (p) p.hidden = true; };
   function elegir(bloque, c, n) {
+    const cm = c, vista = vistaDeCod(c);
+    if (vista) c = (VISTAS[vista] || {}).cod || c;
     items.forEach((x) => x.classList.remove('activo'));
     if (bloque) bloque.classList.add('activo');
     const tb = bloque ? bloque.firstElementChild.textContent : '';
     const sub = APD(c).sub;
     const gr = window.ARBOL.find((g) => !g.fuera && g.aps.some((a) => a.cod === c));
     const tl = gr && tb === 'Investigación' ? gr.gr : LARGO[tb] || tb;
-    $('#sel1').textContent = !bloque ? 'Por decidir' : tb === n ? 'Currículum vitae normalizado' : sub ? `${tl} › ${sub}` : tl;
+    $('#sel1').textContent = !bloque ? 'Por decidir' : vista ? tb : tb === n ? 'Currículum vitae normalizado' : sub ? `${tl} › ${sub}` : tl;
     $('#sel2').textContent = tb === 'Ajustes' ? 'Ajustes' : n;
     quitando = false;
-    actual = { c, opcion: n, bloque: tb, ficha: c === '1', inicio: tb === 'Inicio', tray: c === 'T' };
+    actual = { c, cm, vista, opcion: n, bloque: tb, ficha: c === '1', inicio: tb === 'Inicio', tray: c === 'T' };
     if (c === '6.2') bibAnimar = true;
+    if (c === 'T') trAnimar = true;
     clearTimeout(hT);
     $('#lista').classList.toggle('esinicio', !!actual.inicio);
     panelT = bloque && bloque.classList.contains('tiene') ? tb : null;
@@ -129,7 +139,7 @@
   function pintarMenu() {
     const nav = $('#menu');
     const oc = P.datos.ocultos || [];
-    const hay = (c) => P.datos.meritos.some((m) => m.cod === c && publico(m));
+    const hay = (c) => !(VISTAS[vistaDeCod(c)] || {}).trabajo && entradasMenu(c).some(publico);
     // Un título intermedio solo se muestra si queda algo debajo.
     const sinTitulosVacios = (l) => l.filter((o, i) => o[2] !== 'h' || (l[i + 1] && l[i + 1][2] !== 'h'));
     const SINOC = MENU.map(([t, l, cd]) => [t, l && sinTitulosVacios(l.filter(([c]) => !c || !oc.includes(c))), cd]).filter(([, l]) => l === null || l.length || !oc.length);
@@ -169,7 +179,7 @@
     const pts = items.filter((it) => it.firstElementChild.textContent !== 'Ajustes');
     const cuenta = (it) => {
       const cods = $$('.desp button[data-c]', it).map((b) => b.dataset.c);
-      return cods.reduce((s, c) => s + entradas(c).length, 0);
+      return cods.reduce((s, c) => s + entradasMenu(c).length, 0);
     };
     const k0 = pts.findIndex((it) => actual && actual.bloque === it.firstElementChild.textContent);
     L.innerHTML = `<div class="ln-r">${pts.map((it, k) => {
@@ -191,7 +201,7 @@
         const x = b.offsetLeft + b.offsetWidth / 2 - pop.offsetWidth / 2;
         pop.style.left = Math.max(8, Math.min(x, L.clientWidth - pop.offsetWidth - 8)) + 'px';
         $$('button[data-c]', pop).forEach((o) => {
-          o.classList.toggle('on', !!actual && actual.c === o.dataset.c && actual.opcion === o.dataset.n);
+          o.classList.toggle('on', !!actual && (actual.cm || actual.c) === o.dataset.c && actual.opcion === o.dataset.n);
           o.onclick = (ev) => { ev.stopPropagation(); pop.hidden = true; salirEditor(); elegir(it, o.dataset.c, o.dataset.n); };
         });
       };
@@ -228,7 +238,7 @@
   }
   function htmlMerito(m) {
     const a = APD(m.cod);
-    const dc = m.nota ? 'Nota' : m.cod === 'SC' ? '' : a.sinNum ? '' : m.n;
+    const dc = m.nota ? 'Nota' : m.cod === 'SC' ? '' : a.sinNum ? '' : (numVista && numVista.get(m.id)) || m.n;
     const herr = trabajo ? `<div class="hm">
         ${m.cod !== 'SC' && !m.nota ? '<button data-sube title="Subir">↑</button><button data-baja title="Bajar">↓</button>' : ''}
         <button data-fila title="Añadir una fila">+ Fila</button>
@@ -509,7 +519,7 @@
     $('#sel2').textContent = nombrePersona();
     const oc = P.datos.ocultos || [];
     const lin = (a) => {
-      const l = entradas(a.cod), n = l.length;
+      const l = todasDe(a.cod), n = l.length;
       if (oc.includes(a.cod) || (!trabajo && !n)) return '';
       const ok = l.filter((m) => m.pdfs.some((p) => p.nivel === 'alta')).length;
       const sinPdf = a.sinNum && a.cod !== '3.2' && a.cod !== '3.3' && a.cod !== '3.4';
@@ -527,31 +537,102 @@
     ligarEnlaces($('#meritos'));
     arrancarHistoria();
   }
-  // ---------- Trayectoria temporal: los méritos año a año ----------
+  // ---------- Trayectoria (v0.17): río de méritos por bloque, etapas e hitos ----------
+  // Sin listas largas: el año se abre con un botón por bloque y la lista solo sale si se pide.
+  const BLQ_COL = { Perfil: '#8A8F98', Formación: '#BA7517', Docencia: '#1D9E75', Investigación: '#2F6FB0', Transferencia: '#D85A30', 'Otros méritos': '#9B6BB3', Complementos: '#B4B2A9' };
+  let trOcultos = new Set(), trAbierto = null, trAnimar = true;
+  function bloqueDe(m) {
+    const c = m.vista ? 'v:' + m.vista : m.cod;
+    for (const [t, l, cd] of MENU) { if (cd === c) return t; if ((l || []).some((o) => o[0] === c)) return t; }
+    const g = window.ARBOL.find((x) => x.aps.some((a) => a.cod === m.cod));
+    return g ? window.ARBOL.corto[g.gr] || g.gr : 'Otros méritos';
+  }
+  // Etapas: salen de los hitos de la portada (universidad en la que empieza cada etapa).
+  function etapas(a0, a1) {
+    const H = (POR().hitos || []).map(([a, t]) => [+a, t]);
+    const ini = [['Almería', /almer/i], ['Extremadura', /extremadura/i], ['Murcia', /murcia/i]].map(([n, re]) => { const h = H.find(([, t]) => re.test(t)); return h ? [h[0], n] : null; }).filter(Boolean).sort((x, y) => x[0] - y[0]);
+    if (!ini.length) return [];
+    const e = [[a0, ini[0][0], 'Formación']];
+    ini.forEach(([a, n], i) => e.push([a, i + 1 < ini.length ? ini[i + 1][0] : a1 + 1, `Universidad de ${n}`]));
+    return e.filter(([x, y]) => y > x);
+  }
   function pintarTrayectoria() {
-    $('#sel1').textContent = 'Trayectoria temporal';
-    $('#sel2').textContent = 'Mis méritos, año a año';
+    $('#sel1').textContent = 'Trayectoria';
+    $('#sel2').textContent = 'Mi carrera, año a año';
     const oc = P.datos.ocultos || [];
-    const ms = P.datos.meritos.filter((m) => publico(m) && !m.dato && m.cod !== 'R' && !oc.includes(m.cod) && /^(19|20)\d\d$/.test(m.anio));
-    const por = new Map();
-    ms.forEach((m) => { const a = +m.anio; if (!por.has(a)) por.set(a, []); por.get(a).push(m); });
-    if (!por.size) { $('#meritos').innerHTML = '<p class="vacio">Aún no hay méritos con año.</p>'; return; }
-    const a0 = Math.min(...por.keys()), a1 = Math.max(...por.keys());
-    const max = Math.max(...[...por.values()].map((l) => l.length));
-    const hitos = new Map((POR().hitos || []).map(([a, t]) => [+a, t]));
-    if (!anioSel || !por.has(anioSel)) anioSel = [...por.keys()].filter((a) => por.get(a).length >= 3).sort((x, y) => y - x)[0] || a1;
+    const ms = P.datos.meritos.filter((m) => publico(m) && !m.dato && m.cod !== 'R' && !oc.includes(m.cod) && (trabajo || m.vista !== 'sinubicar') && /^(19|20)\d\d$/.test(m.anio));
+    if (!ms.length) { $('#meritos').innerHTML = '<p class="vacio">Aún no hay méritos con año.</p>'; return; }
+    const blq = new Map(ms.map((m) => [m.id, bloqueDe(m)]));
+    const bloques = Object.keys(BLQ_COL).filter((b) => ms.some((m) => blq.get(m.id) === b));
+    const a0 = Math.min(...ms.map((m) => +m.anio)), a1 = Math.max(...ms.map((m) => +m.anio));
     const anios = []; for (let a = a0; a <= a1; a++) anios.push(a);
-    const l = por.get(anioSel) || [];
-    const grupoDe = (cod) => window.ARBOL.find((g) => g.aps.some((x) => x.cod === cod));
-    const bloques = new Map();
-    l.forEach((m) => { const g = grupoDe(m.cod); const k = g ? (window.ARBOL.corto[g.gr] || g.gr) : 'Otros'; if (!bloques.has(k)) bloques.set(k, new Map()); const b = bloques.get(k); if (!b.has(m.cod)) b.set(m.cod, []); b.get(m.cod).push(m); });
-    $('#meritos').innerHTML = `<p class="cuenta">${ms.length.toLocaleString('es-ES')} méritos con fecha, de ${a0} a ${a1}. Pulsa un año para ver todo lo que hiciste ese año. Los puntos rojos son los hitos de tu carrera.</p>
-      <div class="tr" role="group" aria-label="Años">${anios.map((a) => { const n = (por.get(a) || []).length; return `<button class="tr-y ${a === anioSel ? 'on' : ''} ${hitos.has(a) ? 'hito' : ''}" data-a="${a}" ${n ? '' : 'disabled'} title="${a}: ${n} ${n === 1 ? 'mérito' : 'méritos'}${hitos.has(a) ? ' · ' + esc(hitos.get(a)) : ''}"><span class="tr-bar" style="height:${n ? Math.max(4, Math.round(n / max * 100)) : 0}%"></span><span class="tr-a">${a % 5 === 0 || a === anioSel ? a : ''}</span></button>`; }).join('')}</div>
-      <div class="tr-cab"><button class="bs" id="trAnt" ${anioSel > a0 ? '' : 'disabled'} aria-label="Año anterior">‹</button><h2>${anioSel}<small>${l.length} ${l.length === 1 ? 'mérito' : 'méritos'}</small></h2><button class="bs" id="trSig" ${anioSel < a1 ? '' : 'disabled'} aria-label="Año siguiente">›</button>${hitos.has(anioSel) ? `<span class="tr-hito">${esc(hitos.get(anioSel))}</span>` : ''}</div>
-      ${[...bloques].map(([g, aps]) => `<section class="tr-g"><h3>${esc(g)}</h3>${[...aps].map(([cod, l2]) => `<div class="tr-ap"><span class="tr-apn">${esc(nombreDe(cod))}</span>${l2.map((m) => `<button class="tr-m" data-cod="${esc(cod)}" data-id="${m.id}">${esc(m.t)}</button>`).join('')}</div>`).join('')}</section>`).join('')}`;
+    const cuenta = new Map(anios.map((a) => [a, Object.fromEntries(bloques.map((b) => [b, 0]))]));
+    ms.forEach((m) => { cuenta.get(+m.anio)[blq.get(m.id)]++; });
+    const vis = bloques.filter((b) => !trOcultos.has(b));
+    const totA = (a) => vis.reduce((s, b) => s + cuenta.get(a)[b], 0);
+    const max = Math.max(1, ...anios.map(totA));
+    const hitos = new Map((POR().hitos || []).map(([a, t]) => [+a, t]));
+    if (!anioSel || anioSel < a0 || anioSel > a1) anioSel = [...hitos.keys()].filter((a) => a >= a0 && a <= a1).pop() || a1;
+    // Geometría. Los hitos se reparten en filas para que sus textos no se pisen.
+    const W = 1000, X = (a) => 30 + ((a - a0) * (W - 60)) / Math.max(1, a1 - a0);
+    const filasH = [], posH = [...hitos].filter(([a]) => a >= a0 && a <= a1).sort((p, q) => p[0] - q[0]).map(([a, t]) => {
+      const x = X(a), txt = t.length > 34 ? t.slice(0, 33) + '…' : t, w = txt.length * 6.3 + 14, izq = x + w > W - 4;
+      const [i0, i1] = izq ? [x - w, x] : [x, x + w];
+      let f = filasH.findIndex((fin) => i0 > fin + 6); if (f < 0) { f = filasH.length; filasH.push(-1e9); }
+      filasH[f] = i1;
+      return { a, t, txt, x, f, izq };
+    });
+    const top = 52 + filasH.length * 22, Hr = 230, bot = top + Hr, Y = (v) => bot - (v / max) * (Hr - 6);
+    const curva = (pts) => { let d = `M${pts[0][0]},${pts[0][1]}`; for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], mx = (x0 + x1) / 2; d += ` C${mx},${y0} ${mx},${y1} ${x1},${y1}`; } return d; };
+    let base = anios.map(() => 0), capas = '';
+    vis.forEach((b) => {
+      const sup = anios.map((a, i) => base[i] + cuenta.get(a)[b]);
+      const arriba = anios.map((a, i) => [X(a), Y(sup[i])]), abajo = anios.map((a, i) => [X(a), Y(base[i])]).reverse();
+      capas += `<path class="rio-c" data-b="${esc(b)}" d="${curva(arriba)} L${abajo[0][0]},${abajo[0][1]} ${curva(abajo).slice(1).replace(/^[^C]*/, '')} Z" fill="${BLQ_COL[b]}"/>`;
+      base = sup;
+    });
+    const et = etapas(a0, a1);
+    // Etapas al fondo; el nombre solo se escribe si cabe (si no, sale al pasar el ratón).
+    const fondo = et.map(([x, y, n], i) => {
+      const x1 = X(x) - (x === a0 ? 30 : 0), w = X(Math.min(y, a1 + 0.5)) - X(x) + (x === a0 ? 30 : 0), corto = n.replace('Universidad de ', '');
+      const cab = n.length * 6.6 + 12 < w ? n : corto.length * 6.6 + 12 < w ? corto : '';
+      return `<g><rect x="${x1}" y="18" width="${w}" height="${bot - 18}" class="rio-et ${i % 2 ? 'par' : ''}"/><title>${esc(n)} (${x}–${Math.min(y, a1 + 1) - 1})</title>${cab ? `<text x="${X(x) + 6}" y="34" class="rio-etn">${esc(cab)}</text>` : ''}</g>`;
+    }).join('');
+    const flags = posH.map(({ a, t, txt, x, f, izq }) => {
+      const y = 56 + f * 22;
+      return `<g class="rio-h" data-a="${a}"><line x1="${x}" x2="${x}" y1="${y}" y2="${bot}" /><circle cx="${x}" cy="${y}" r="5"/><text x="${izq ? x - 8 : x + 8}" y="${y + 4}" text-anchor="${izq ? 'end' : 'start'}">${esc(txt)}</text><title>${a} · ${esc(t)}</title></g>`;
+    }).join('');
+    const ejes = anios.filter((a) => a % 5 === 0).map((a) => `<text x="${X(a)}" y="${bot + 18}" text-anchor="middle" class="lt-txt">${a}</text>`).join('');
+    const zonas = anios.map((a) => `<rect class="rio-z" data-a="${a}" x="${X(a) - (W - 60) / Math.max(1, a1 - a0) / 2}" y="18" width="${(W - 60) / Math.max(1, a1 - a0)}" height="${bot - 18 + 20}"/>`).join('');
+    const sel = `<line class="rio-sel" x1="${X(anioSel)}" x2="${X(anioSel)}" y1="18" y2="${bot}"/>`;
+    const ley = bloques.map((b) => `<button class="rio-b ${trOcultos.has(b) ? 'off' : ''}" data-rb="${esc(b)}" style="--c:${BLQ_COL[b]}"><i></i>${esc(b)} <small>${ms.filter((m) => blq.get(m.id) === b).length}</small></button>`).join('');
+    // Panel del año: un botón por bloque; la lista solo si se abre
+    const delAnio = ms.filter((m) => +m.anio === anioSel);
+    const porB = bloques.map((b) => [b, delAnio.filter((m) => blq.get(m.id) === b)]).filter(([, l]) => l.length);
+    const panel = `<div class="rio-p"><div class="tr-cab"><button class="bs" id="trAnt" ${anioSel > a0 ? '' : 'disabled'} aria-label="Año anterior">‹</button><h2>${anioSel}<small>${delAnio.length} ${delAnio.length === 1 ? 'mérito' : 'méritos'}</small></h2><button class="bs" id="trSig" ${anioSel < a1 ? '' : 'disabled'} aria-label="Año siguiente">›</button>${hitos.has(anioSel) ? `<span class="tr-hito">${esc(hitos.get(anioSel))}</span>` : ''}</div>
+      <div class="rio-bq">${porB.map(([b, l]) => `<button class="rio-k ${trAbierto === b ? 'on' : ''}" data-rk="${esc(b)}" style="--c:${BLQ_COL[b]}"><b>${l.length}</b><span>${esc(b)}</span></button>`).join('')}</div>
+      ${trAbierto && porB.some(([b]) => b === trAbierto) ? `<div class="rio-l">${(() => { const l = porB.find(([b]) => b === trAbierto)[1], g = new Map(); l.forEach((m) => { const k = m.vista ? 'v:' + m.vista : m.cod; if (!g.has(k)) g.set(k, []); g.get(k).push(m); }); return [...g].map(([k, l2]) => `<div class="tr-ap"><span class="tr-apn">${esc(nombreDe(k))}</span>${l2.map((m) => `<button class="tr-m" data-cod="${esc(k)}" data-id="${m.id}">${esc(m.t)}</button>`).join('')}</div>`).join(''); })()}</div>` : ''}</div>`;
+    $('#meritos').innerHTML = `<div class="rio-cab"><p class="rio-t">${ms.length.toLocaleString('es-ES', { useGrouping: 'always' })} méritos de ${a0} a ${a1}</p><div class="rio-ley">${ley}</div></div>
+      <div class="rio ${trAnimar ? 'entra' : ''}"><svg viewBox="0 0 ${W} ${bot + 26}" role="img" aria-label="Méritos por año y bloque, con los hitos de la carrera">${fondo}<g class="rio-capas">${capas}</g>${ejes}${flags}${sel}${zonas}</svg><div class="rio-tip" hidden></div></div>${panel}`;
+    trAnimar = false;
+    // Interacción
     const ir = (a) => { anioSel = a; pintarTrayectoria(); };
-    $$('.tr-y').forEach((b) => { b.onclick = () => ir(+b.dataset.a); });
-    const prev = [...por.keys()].filter((a) => a < anioSel).sort((x, y) => y - x)[0], next = [...por.keys()].filter((a) => a > anioSel).sort((x, y) => x - y)[0];
+    const tip = $('.rio-tip'), caja = $('.rio');
+    $$('.rio-z').forEach((z) => {
+      const a = +z.dataset.a;
+      z.onclick = () => ir(a);
+      z.onmousemove = (e) => {
+        const c = cuenta.get(a), n = Object.values(c).reduce((s, v) => s + v, 0), r = caja.getBoundingClientRect();
+        tip.innerHTML = `<b>${a}</b>${hitos.has(a) ? `<em>${esc(hitos.get(a))}</em>` : ''}<span>${n} ${n === 1 ? 'mérito' : 'méritos'}</span>${bloques.filter((b) => c[b]).map((b) => `<span><i style="background:${BLQ_COL[b]}"></i>${esc(b)} · ${c[b]}</span>`).join('')}`;
+        tip.hidden = false;
+        tip.style.left = Math.min(r.width - 200, Math.max(0, e.clientX - r.left + 14)) + 'px';
+        tip.style.top = Math.max(0, e.clientY - r.top - 20) + 'px';
+      };
+      z.onmouseleave = () => { tip.hidden = true; };
+    });
+    $$('[data-rb]').forEach((b) => { b.onclick = () => { const k = b.dataset.rb; if (trOcultos.has(k)) trOcultos.delete(k); else if (vis.length > 1) trOcultos.add(k); pintarTrayectoria(); }; });
+    $$('[data-rk]').forEach((b) => { b.onclick = () => { trAbierto = trAbierto === b.dataset.rk ? null : b.dataset.rk; pintarTrayectoria(); }; });
+    const prev = anios.filter((a) => a < anioSel && ms.some((m) => +m.anio === a)).pop(), next = anios.find((a) => a > anioSel && ms.some((m) => +m.anio === a));
     $('#trAnt').onclick = () => prev && ir(prev);
     $('#trSig').onclick = () => next && ir(next);
     $$('.tr-m').forEach((b) => {
@@ -564,6 +645,8 @@
   function irA(c) {
     const it = items.find((x) => x.dataset.cd === c || $(`[data-c="${c}"]`, x));
     elegir(it || null, c, nombreDe(c));
+    // v0.17: un apartado del CVN repartido en opciones del menú se ve entero desde el índice.
+    if (!it && actual && !actual.vista) { actual.cvn = true; pintarLista(); }
   }
   function pintarLista() {
     const caja = $('#meritos');
@@ -576,13 +659,14 @@
     if (actual.ficha) { pintarFicha(); $('#lista').scrollTop = y; ligarEnlaces(caja); return; }
     if (actual.bloque === 'Ajustes') { pintarAjustes(); return; }
     const esPub = actual.c === '6.2';
-    const l = actual.c === 'PV' ? P.datos.meritos.filter((m) => m.nuevo) : esPub ? filtrarPubs(entradas(actual.c)) : entradas(actual.c);
-    const herrAp = trabajo && actual.c && actual.c !== 'SC' && actual.c !== 'PV' ? `<div class="fil"><button class="bs prim" id="bNE">+ Añadir entrada</button><button class="bs mal" id="bQA">Eliminar este apartado</button></div>${quitando ? `<div class="quita"><b>${l.length ? `Tiene ${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}. ¿Qué hago con ${l.length === 1 ? 'ella' : 'ellas'}?` : '¿Eliminar este apartado?'}</b>${l.length ? `<select class="bs" id="qD" aria-label="Mover a">${opcionesAp()}</select><button class="bs" id="qM">Mover y eliminar</button>` : ''}<button class="bs mal" id="qB">${l.length ? 'Eliminar todo' : 'Eliminar'}</button><button class="bs" id="qN">Cancelar</button></div>` : ''}` : '';
+    const deAqui = () => (actual.vista ? entradasMenu(actual.cm) : actual.cvn ? todasDe(actual.c) : entradas(actual.c));
+    const l = actual.c === 'PV' ? P.datos.meritos.filter((m) => m.nuevo) : esPub ? filtrarPubs(deAqui()) : deAqui();
+    const herrAp = trabajo && actual.c && actual.c !== 'SC' && actual.c !== 'PV' ? `<div class="fil"><button class="bs prim" id="bNE">+ Añadir entrada</button>${actual.vista ? '' : '<button class="bs mal" id="bQA">Eliminar este apartado</button>'}</div>${actual.vista === 'sinubicar' ? '<p class="cuenta">Aquí están las entradas cuya carpeta de E: no dice dónde van, o que no tienen PDF. El tribunal no ve esta opción: usa «Mover a…» para llevar cada una a su sitio.</p>' : ''}${quitando ? `<div class="quita"><b>${l.length ? `Tiene ${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}. ¿Qué hago con ${l.length === 1 ? 'ella' : 'ellas'}?` : '¿Eliminar este apartado?'}</b>${l.length ? `<select class="bs" id="qD" aria-label="Mover a">${opcionesAp()}</select><button class="bs" id="qM">Mover y eliminar</button>` : ''}<button class="bs mal" id="qB">${l.length ? 'Eliminar todo' : 'Eliminar'}</button><button class="bs" id="qN">Cancelar</button></div>` : ''}` : '';
     const avisoC0 = actual.c === 'C.0' && trabajo ? '<p class="cuenta">Estaban en el Word y no se han encontrado en el CVN. El tribunal no las ve, salvo las que marques «Mostrar al tribunal».</p>' : '';
     const verCuenta = trabajo && !APD(actual.c).sinNum;
     const avisoSC = actual.c === 'SC' && trabajo ? `<div class="clas-ban"><div><b>Clasificación automática</b><span>El programa lee cada documento, propone dónde va y tú confirmas.</span></div><button class="bs prim" id="bClasSC">Clasificar automáticamente</button></div>` : '';
-    caja.innerHTML = (esPub ? htmlBiblio() + htmlFiltroPubs() : '') + avisoSC + herrAp + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== entradas('6.2').length ? ` de ${entradas('6.2').length}` : ''}</p>` : '') + (LINEA[actual.c] ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + l.map(esPub ? htmlPub : htmlMerito).join('') : '<p class="vacio">Este apartado no tiene entradas.</p>');
-    const bN = $('#bNE'); if (bN) bN.onclick = async () => { const r = await op('nuevo', { cod: actual.c }, 'Entrada añadida.'); if (r) { const e = $(`.merito[data-id="${r.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); const c = $('.val.ed', e); if (c) c.click(); } } };
+    caja.innerHTML = (esPub ? (actual.vista === 'libros' ? '' : htmlBiblio()) + htmlFiltroPubs() : '') + avisoSC + herrAp + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
+    const bN = $('#bNE'); if (bN) bN.onclick = async () => { const r = await op('nuevo', { cod: actual.vista ? actual.cm : actual.c }, 'Entrada añadida.'); if (r) { const e = $(`.merito[data-id="${r.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); const c = $('.val.ed', e); if (c) c.click(); } } };
     $$('[data-ir]', caja).forEach((t) => { t.onclick = () => { const e = $(`.merito[data-id="${t.dataset.ir}"]`); if (e) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bQ = $('#bQA'); if (bQ) bQ.onclick = () => { quitando = !quitando; pintarLista(); };
     const qN = $('#qN'); if (qN) qN.onclick = () => { quitando = false; pintarLista(); };
@@ -594,6 +678,8 @@
     ligarEnlaces(caja);
     if (esPub) ligarPubs(caja);
     ligarLinea(caja);
+    ligarHoras(caja);
+    $$('[data-tfe]', caja).forEach((b) => { b.onclick = () => { const g = $(`#tfe-${b.dataset.tfe}`, caja); if (g) g.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bCS = $('#bClasSC'); if (bCS) bCS.onclick = () => irClasificar('sueltos');
     if (actual.c === 'SC' && trabajo) pintarDocs();
   }
@@ -602,10 +688,14 @@
   // El color sale de la universidad («uni»), del papel en el proyecto («rol») o es uno solo («uno»).
   const LINEA = {
     '2.2': { modo: 'barras', color: 'uni' },
-    '3.4': { modo: 'anual', color: 'uni', que: 'cursos' },
+    // v0.17: 3.4 sin gráfico (casi todo es de dos años). Línea de puntos con las etapas al fondo.
     '3.5': { modo: 'anual', color: 'uni', que: 'cursos' },
+    '4.4': { modo: 'anual', color: 'uni', que: 'cursos y seminarios' },
+    '4.5': { modo: 'anual', color: 'mat', que: 'materiales' },
+    '4.6': { modo: 'barras', color: 'uni' },
+    '6.4': { modo: 'anual', color: 'uno', que: 'trabajos' },
     '4.1': { modo: 'cursos', color: 'uni' },
-    '4.2': { modo: 'anual', color: 'uni', que: 'tesis defendidas' },
+    '4.2': { modo: 'anual', color: 'tipo', que: 'trabajos dirigidos' }, // v0.17: tesis, TFM y TFG por separado
     '5.2': { modo: 'barras', color: 'rol' },
     '5.3': { modo: 'barras', color: 'rol' },
     '6.3': { modo: 'anual', color: 'uno', que: 'trabajos' },
@@ -614,7 +704,27 @@
     uni: [['A', /almer/i, 'Almería', '#D85A30'], ['E', /extremadura/i, 'Extremadura', '#7F77DD'], ['M', /murcia/i, 'Murcia', '#1D9E75'], ['O', /./, 'Otras entidades', '#888780']],
     rol: [['IP', null, 'Investigador principal', '#D85A30'], ['IN', null, 'Investigador', '#7F77DD']],
     uno: [['T', null, 'Trabajos presentados', '#1D9E75']],
+    mat: [['LI', null, 'Libros', '#2F6FB0'], ['CA', null, 'Capítulos', '#7F77DD'], ['VI', null, 'Vídeos y materiales en DIGITUM', '#1D9E75'], ['OT', null, 'Otros materiales', '#888780']],
+    tipo: [['TD', null, 'Tesis doctorales', '#D85A30'], ['TM', null, 'Trabajos fin de máster', '#7F77DD'], ['TG', null, 'Trabajos fin de grado', '#1D9E75'], ['X', null, 'Otros trabajos dirigidos', '#888780']],
   };
+  // ---------- 4.2: tesis, TFM y TFG, cada uno en su bloque (v0.17) ----------
+  const TIPOS_TFE = [['TD', 'Tesis doctorales', 'tesis'], ['TM', 'Trabajos fin de máster', 'TFM'], ['TG', 'Trabajos fin de grado', 'TFG'], ['X', 'Sin tipo indicado', 'sin tipo']];
+  const tipoTFE = (m) => {
+    const t = celdaDe(m, /^Tipo de proyecto$/i);
+    return /tesis/i.test(t) ? 'TD' : /m[áa]ster/i.test(t) ? 'TM' : /grado/i.test(t) ? 'TG' : 'X';
+  };
+  const resumenTFE = (l) => TIPOS_TFE.map(([k, , c]) => [l.filter((m) => tipoTFE(m) === k).length, c]).filter(([n, c]) => n && (c !== 'sin tipo' || trabajo)).map(([n, c]) => `${n} ${c}`).join(' · ');
+  let numVista = null; // numeración propia dentro de cada bloque
+  // En una opción del menú (v0.17) las entradas se numeran 1, 2, 3… dentro de esa opción.
+  const conNumVista = (l, pintar) => { if (!actual || !actual.vista) return pintar(); numVista = new Map(l.map((m, i) => [m.id, i + 1])); try { return pintar(); } finally { numVista = null; } };
+  function htmlGruposTFE(l) {
+    const grupos = TIPOS_TFE.map(([k, nom]) => [k, k === 'X' && !trabajo ? 'Otros trabajos dirigidos' : nom, l.filter((m) => tipoTFE(m) === k)]).filter(([, , v]) => v.length);
+    numVista = new Map(grupos.flatMap(([, , v]) => v.map((m, i) => [m.id, i + 1])));
+    const nav = `<div class="tfe-nav">${grupos.map(([k, nom, v]) => `<button class="bs" data-tfe="${k}">${esc(nom)} <b>${v.length}</b></button>`).join('')}</div>`;
+    const h = nav + grupos.map(([k, nom, v]) => `<h3 class="tfe-gr" id="tfe-${k}">${esc(nom)} <span>${v.length}</span></h3>${k === 'X' && trabajo ? '<p class="cuenta">Estas entradas no dicen si son tesis, TFM o TFG. Revísalas: alguna puede no ser un trabajo dirigido.</p>' : ''}${v.map(htmlMerito).join('')}`).join('');
+    numVista = null;
+    return h;
+  }
   const ahoraDec = () => { const d = new Date(); return d.getFullYear() + d.getMonth() / 12 + (d.getDate() - 1) / 365; };
   const decDe = (s) => { const f = String(s || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return f ? +f[3] + (+f[2] - 1) / 12 + (+f[1] - 1) / 365 : null; };
   function tramoDe(m, cfg) {
@@ -638,13 +748,41 @@
       const ip = /principal|coordinador|responsable/i.test(c['Grado de contribución'] || '') || /pino/i.test(c['Nombres investigadores principales (IP, Co-IP,...)'] || '');
       k = ip ? 'IP' : 'IN';
     } else if (cfg.color === 'uno') k = 'T';
+    else if (cfg.color === 'tipo') k = tipoTFE(m);
+    else if (cfg.color === 'mat') { const t = m.filas.flat().map((p) => p.v).join(' '); k = /cap[ií]tulo/i.test(t) ? 'CA' : /v[ií]deo|digitum/i.test(t) ? 'VI' : /\blibro\b/i.test(t) ? 'LI' : 'OT'; }
     else {
-      const ent = c['Entidad de realización'] || c['Entidad empleadora'] || c['Entidad organizadora'] || c['Entidad de titulación'] || '';
+      const ent = c['Entidad de realización'] || c['Entidad empleadora'] || c['Entidad organizadora'] || c['Entidad de titulación'] || c['Entidad financiadora'] || '';
       k = (COLORES.uni.find(([, re]) => re.test(ent)) || COLORES.uni[3])[0];
     }
     const col = COLORES[cfg.color].find(([x]) => x === k);
     const nom = c['Categoría profesional'] || c['Nombre del proyecto'] || c['Nombre de la asignatura/curso'] || c['Titulación universitaria'] || c['Título del trabajo'] || c['Título del curso/seminario'] || c['Título de la formación'] || m.t || '';
     return { id: m.id, ini, fin, curso, sinFin, u: k, color: col[3], nom: String(nom).replace(/\s+/g, ' ').trim() };
+  }
+  // Línea temporal de puntos (v0.17): un punto por entrada, apilados por año, con las etapas de la carrera al fondo.
+  // Pasa el ratón por un punto para ver la entrada; púlsalo para ir a su ficha. Pulsar un año lista sus entradas.
+  function htmlPuntos(c, cfg, T, lista, usadas, ley) {
+    const W = 1000, hoy = ahoraDec(), por = {};
+    T.forEach((t) => { const y = Math.floor(t.ini); (por[y] = por[y] || []).push(t); });
+    const ys = Object.keys(por).map(Number), y0 = Math.min(...ys), y1 = Math.max(Math.floor(hoy), ...ys), n = y1 - y0 + 1;
+    const max = Math.max(...Object.values(por).map((v) => v.length)), x0 = 8, w = (W - 16) / n, top = 22, H = 128;
+    const r = Math.max(2.2, Math.min(7, (H - 6) / (max * 2.35), (w - 3) / 2));
+    const orden = usadas.map(([k]) => k);
+    let s = etapas(y0, y1).map(([a, b, nom], i) => {
+      const xa = x0 + (Math.max(a, y0) - y0) * w, wb = (Math.min(b, y1 + 1) - Math.max(a, y0)) * w, corto = nom.replace('Universidad de ', '');
+      const cab = nom.length * 6.3 + 10 < wb ? nom : corto.length * 6.3 + 10 < wb ? corto : '';
+      return `<g><rect x="${xa}" y="0" width="${wb}" height="${top + H + 2}" class="rio-et ${i % 2 ? 'par' : ''}"/><title>${esc(nom)}</title>${cab ? `<text x="${xa + 5}" y="13" class="rio-etn">${esc(cab)}</text>` : ''}</g>`;
+    }).join('');
+    s += `<line x1="${x0}" x2="${W - 8}" y1="${top + H + 2}" y2="${top + H + 2}" class="lt-eje"/>`;
+    for (let y = y0; y <= y1; y++) {
+      const xc = x0 + (y - y0) * w, v = (por[y] || []).slice().sort((a, b) => orden.indexOf(a.u) - orden.indexOf(b.u));
+      s += `<g class="lt-col" data-lty="${y}"><rect x="${xc}" y="${top}" width="${w}" height="${H + 2}" class="lt-hit"/><title>${y} · ${v.length} ${v.length === 1 ? 'entrada' : 'entradas'}</title>`;
+      s += v.map((t, k) => `<circle class="lt-p" data-ltid="${t.id}" cx="${xc + w / 2}" cy="${top + H - r - k * (2 * r + 1.6)}" r="${r}" fill="${t.color}"><title>${y} · ${esc(t.nom)}</title></circle>`).join('');
+      s += '</g>';
+      if (y % 5 === 0 || (y === y0 && (5 - (y % 5)) % 5 >= 2) || (y === y1 && y % 5 >= 2)) s += `<text x="${xc + w / 2}" y="${top + H + 20}" text-anchor="middle" class="lt-txt">${y}</text>`;
+    }
+    const datos = Object.fromEntries(Object.entries(por).map(([y, v]) => [y, v.map((t) => [t.id, t.nom.length > 90 ? t.nom.slice(0, 89) + '…' : t.nom])]));
+    const total = `<span class="lt-tot">${cfg.color === 'tipo' ? resumenTFE(lista.filter(publico)) : `${T.length} ${cfg.que || 'entradas'}`} · ${Math.min(...ys)}–${Math.max(...ys)}</span>`;
+    return `<div class="linea lt-pts" data-lt="${esc(JSON.stringify(datos))}" data-modo="anual">${ley.replace('</div>', total + '</div>')}<svg viewBox="0 0 ${W} ${top + H + 28}" role="img" aria-label="Entradas por año">${s}</svg><p class="lt-det">Pasa el ratón por un punto para ver la entrada y púlsalo para ir a su ficha. Pulsa un año para ver todas las de ese año.</p></div>`;
   }
   function htmlLinea(c, lista) {
     const cfg = LINEA[c];
@@ -655,7 +793,8 @@
     const usadas = COLORES[cfg.color].filter(([k]) => T.some((t) => t.u === k));
     const extra = modo === 'cursos' ? '<span class="vac">Sin datos en el CV</span>' : modo === 'barras' && T.some((t) => t.sinFin) ? '<span class="cor">Fecha de fin sin dato</span>' : '';
     const ley = `<div class="lt-ley">${usadas.length > 1 || cfg.color !== 'uno' ? usadas.map(([, , n, col]) => `<span style="--c:${col}">${esc(n)}</span>`).join('') : ''}${extra}</div>`;
-    if (modo === 'cursos' || modo === 'anual') {
+    if (modo === 'anual') return htmlPuntos(c, cfg, T, lista, usadas, ley);
+    if (modo === 'cursos') {
       const anioDe = (t) => (modo === 'cursos' ? Math.floor(t.ini - 8 / 12) : Math.floor(t.ini));
       const por = {};
       T.forEach((t) => { const y = anioDe(t); (por[y] = por[y] || []).push(t); });
@@ -678,13 +817,14 @@
         if (y % 5 === 0 || (y === y0 && (5 - (y % 5)) % 5 >= 2) || (y === y1 && y % 5 >= 2)) s += `<text x="${xc + w / 2}" y="${H + 20}" text-anchor="middle" class="lt-txt">${y}</text>`;
       }
       const datos = Object.fromEntries(Object.entries(por).map(([y, v]) => [y, v.map((t) => [t.id, t.nom.length > 90 ? t.nom.slice(0, 89) + '…' : t.nom])]));
-      const total = modo === 'anual' ? `<span class="lt-tot">${T.length} ${cfg.que || 'entradas'} · ${y0}–${y1}</span>` : '';
+      const total = modo === 'anual' ? `<span class="lt-tot">${cfg.color === 'tipo' ? resumenTFE(lista.filter(publico)) : `${T.length} ${cfg.que || 'entradas'}`} · ${y0}–${y1}</span>` : '';
       return `<div class="linea" data-lt="${esc(JSON.stringify(datos))}" data-modo="${modo}">${ley.replace('</div>', total + '</div>')}<svg viewBox="0 0 ${W} ${H + 28}" role="img" aria-label="Entradas por ${modo === 'cursos' ? 'curso académico' : 'año'}">${s}</svg><p class="lt-det">Pulsa ${modo === 'cursos' ? 'un curso' : 'un año'} para ver sus entradas.</p></div>`;
     }
     const y0b = Math.floor(Math.min(...T.map((t) => t.ini)));
     const L = 330, X = (v) => L + ((v - y0b) * (W - L - 70)) / Math.max(1, hoy - y0b);
     const fil = 26, H = T.length * fil, paso = hoy - y0b > 12 ? 5 : 2;
-    let s = '';
+    // Etapas de la carrera al fondo (Almería, Extremadura, Murcia), como en la Trayectoria.
+    let s = etapas(y0b, Math.floor(hoy)).map(([a, b, n], i) => `<rect x="${X(Math.max(a, y0b))}" y="0" width="${Math.max(0, X(Math.min(b, hoy)) - X(Math.max(a, y0b)))}" height="${H}" class="rio-et ${i % 2 ? 'par' : ''}"><title>${esc(n)}</title></rect>`).join('');
     for (let y = Math.ceil(y0b / paso) * paso; y <= hoy; y += paso) s += `<line x1="${X(y)}" x2="${X(y)}" y1="0" y2="${H}" class="lt-red"/><text x="${X(y)}" y="${H + 18}" text-anchor="middle" class="lt-txt">${y}</text>`;
     T.forEach((t, i) => {
       const y = i * fil, nom = t.nom.length > 44 ? t.nom.slice(0, 43) + '…' : t.nom, a = Math.floor(t.ini), b = t.curso ? 'hoy' : t.sinFin ? '¿?' : Math.floor(t.fin);
@@ -695,6 +835,46 @@
       s += '</g>';
     });
     return `<div class="linea">${ley}<svg viewBox="0 0 ${W} ${H + 26}" role="img" aria-label="Duración de cada entrada">${s}</svg><p class="lt-det">Pulsa una barra para ir a su ficha.</p></div>`;
+  }
+  // ---------- 4.1: horas de docencia de los certificados oficiales (v0.17) ----------
+  // Total, gráfico de horas por curso apilado por universidad y tabla que se filtra por universidad o curso.
+  let horasFil = { uni: null, curso: null };
+  const UNIS = [['Almería', '#D85A30'], ['Extremadura', '#7F77DD'], ['Murcia', '#1D9E75']];
+  const fh = (h) => `${Number(h).toLocaleString('es-ES', { maximumFractionDigits: 1, useGrouping: 'always' })} h`;
+  function htmlHoras() {
+    const H = P.datos.docencia_horas;
+    if (!H || !H.filas || !H.filas.length) return '';
+    const F = H.filas, imp = F.filter((f) => !f.asignada), asig = F.filter((f) => f.asignada);
+    const suma = (l) => l.reduce((s, f) => s + f.horas, 0);
+    const cursos = [...new Set(F.map((f) => f.curso))].sort();
+    const y0 = +cursos[0].slice(0, 4), y1 = +cursos[cursos.length - 1].slice(0, 4);
+    const cur = (y) => `${y}/${String(y + 1).slice(2)}`;
+    const porC = new Map(); for (let y = y0; y <= y1; y++) porC.set(cur(y), F.filter((f) => f.curso === cur(y)));
+    const max = Math.max(...[...porC.values()].map(suma)), W = 1000, Hh = 170, x0 = 40, w = (W - x0 - 8) / porC.size;
+    const Y = (h) => Hh - (h / max) * (Hh - 14);
+    let s = '';
+    for (let g = 100; g <= max; g += 100) s += `<line x1="${x0}" x2="${W - 8}" y1="${Y(g)}" y2="${Y(g)}" class="lt-red"/><text x="${x0 - 6}" y="${Y(g) + 4}" text-anchor="end" class="lt-txt">${g}</text>`;
+    [...porC].forEach(([c, l], i) => {
+      const x = x0 + i * w, bw = Math.max(3, w - 4), as = l.some((f) => f.asignada);
+      let yy = Hh;
+      UNIS.forEach(([u, col]) => { const h = suma(l.filter((f) => f.uni === u)); if (!h) return; const hh = Hh - Y(h); yy -= hh; s += `<rect x="${x + 2}" y="${yy}" width="${bw}" height="${hh}" fill="${col}" ${as ? 'fill-opacity=".45" stroke="' + col + '" stroke-dasharray="3 2"' : ''} rx="1.5"/>`; });
+      const det = l.length ? l.map((f) => `${f.asig}: ${fh(f.horas)}`).join('\n') : 'Sin certificado de horas';
+      s += `<g class="lt-col ${horasFil.curso === c ? 'on' : ''}" data-hc="${c}"><rect x="${x}" y="0" width="${w}" height="${Hh + 2}" class="lt-hit"/><title>${c}${as ? ' (carga asignada)' : ''} · ${fh(suma(l))}\n${esc(det)}</title></g>`;
+      const y = +c.slice(0, 4);
+      if (y % 5 === 0 || (y === y0 && (5 - (y % 5)) % 5 >= 3) || (y === y1 && y % 5 >= 3)) s += `<text x="${x + w / 2}" y="${Hh + 18}" text-anchor="middle" class="lt-txt">${c}</text>`;
+    });
+    const tot = (u) => suma(imp.filter((f) => f.uni === u));
+    const kpi = `<div class="hs-k"><div class="hs-tot"><b>${fh(suma(imp))}</b><span>de docencia universitaria impartida · ${new Set(imp.map((f) => f.curso)).size} cursos académicos · 3 universidades</span></div>${UNIS.map(([u, col]) => `<button class="hs-u ${horasFil.uni === u ? 'on' : ''}" data-hu="${u}" style="--c:${col}"><i></i>${u}<b>${fh(tot(u))}</b></button>`).join('')}${asig.length ? `<span class="hs-as">+ ${fh(suma(asig))} asignadas en 2025/26 (curso en marcha)</span>` : ''}</div>`;
+    const fl = F.filter((f) => (!horasFil.uni || f.uni === horasFil.uni) && (!horasFil.curso || f.curso === horasFil.curso)).sort((a, b) => b.curso.localeCompare(a.curso) || b.horas - a.horas);
+    const filtro = horasFil.uni || horasFil.curso ? `<button class="bs" id="hsQ">Quitar filtro: ${esc([horasFil.uni, horasFil.curso].filter(Boolean).join(' · '))} ✕</button>` : '';
+    const tabla = `<details class="hs-tab" ${horasFil.uni || horasFil.curso ? 'open' : ''}><summary>Ver el detalle por asignatura (${fl.length} ${fl.length === 1 ? 'fila' : 'filas'} · ${fh(suma(fl.filter((f) => !f.asignada)))})</summary>${filtro}<table class="tcv"><thead><tr><th>Curso</th><th>Universidad</th><th>Asignatura</th><th>Titulación</th><th>Horas</th></tr></thead><tbody>${fl.map((f) => `<tr><td>${esc(f.curso)}${f.asignada ? ' <small>(asignada)</small>' : ''}</td><td>${esc(f.uni)}</td><td>${esc(f.asig)}</td><td>${esc(f.tit)}</td><td class="num">${fh(f.horas)}${f.creditos ? ` <small>(${f.creditos} cr.)</small>` : ''}</td></tr>`).join('')}</tbody></table></details>`;
+    return `<section class="linea hs">${kpi}<svg viewBox="0 0 ${W} ${Hh + 26}" role="img" aria-label="Horas impartidas por curso académico">${s}</svg><p class="lt-det">Pasa el ratón por un curso para ver sus asignaturas; púlsalo para filtrar la tabla. Fuentes: certificados oficiales de la UM (20/11/2025), la UEx (25/05/2007) y la UAL (23/02/2007). UEx y UAL dan créditos: 1 crédito = 10 horas.</p>${tabla}</section>`;
+  }
+  function ligarHoras(caja) {
+    const re = () => { const y = $('#lista').scrollTop; const sec = $('.hs', caja); if (sec) { sec.outerHTML = htmlHoras(); ligarHoras(caja); } $('#lista').scrollTop = y; };
+    $$('[data-hu]', caja).forEach((b) => { b.onclick = () => { horasFil.uni = horasFil.uni === b.dataset.hu ? null : b.dataset.hu; re(); }; });
+    $$('[data-hc]', caja).forEach((g) => { g.onclick = () => { horasFil.curso = horasFil.curso === g.dataset.hc ? null : g.dataset.hc; re(); }; });
+    const q = $('#hsQ', caja); if (q) q.onclick = () => { horasFil = { uni: null, curso: null }; re(); };
   }
   function irMerito(id) {
     const e = $(`.merito[data-id="${id}"]`);
@@ -816,7 +996,7 @@
     });
   }
   function htmlFiltroPubs() {
-    const l = entradas('6.2'), lim = new Date().getFullYear() - 4;
+    const l = deVista6_2(), lim = new Date().getFullYear() - 4;
     const n = { todas: l.length, q1: l.filter(esQ1).length, q12: l.filter(esQ12).length, top: l.filter(esTop10).length, rec: l.filter((m) => anioDe(m) >= lim).length, corr: l.filter(esCorr).length };
     const b = (k, t) => `<button class="pf ${pubFil.f === k ? 'on' : ''}" data-pf="${k}">${t} <small>${n[k]}</small></button>`;
     const act = [];
@@ -843,7 +1023,7 @@
     const B = BIB();
     const falta = trabajo && P.faltan ? `<div class="clas-ban"><div><b>${P.faltan} ${P.faltan === 1 ? 'publicación está' : 'publicaciones están'} en OpenAlex y no en tu CV</b><span>Revísalas y añade las que quieras: el texto se escribe solo.</span></div><button class="bs prim" id="bFaltan">Revisarlas</button></div>` : '';
     if (!B) return trabajo ? `<section class="bib vacia"><p>Trae tus datos de OpenAlex para ver aquí tu panel bibliométrico: citas, índice h, cuartiles, impacto normalizado y evolución.</p><button class="bs prim" id="bibAct">Traer mis datos de OpenAlex</button></section>` : '';
-    const vis = entradas('6.2').filter(publico);
+    const vis = todasDe('6.2').filter(publico);
     const base = filtrarPubs(vis, true);
     const anim = bibAnimar && !matchMedia('(prefers-reduced-motion: reduce)').matches;
     // --- Cifras ---
@@ -950,7 +1130,7 @@
     const bg = $('.bg', caja);
     if (!bg) return;
     const svg = $('svg', bg), tip = $('.bib-tip', bg), B = BIB();
-    const vis = filtrarPubs(entradas('6.2').filter(publico), true);
+    const vis = filtrarPubs(todasDe('6.2').filter(publico), true);
     const hA = bibModo === 'h' ? hPorAnio(B) : null;
     const info = (a) => {
       if (bibModo === 'citas') return `<b>${a}</b>${fnum((B.porAnio[a] || {}).c || 0)} citas`;
@@ -998,7 +1178,7 @@
     const qChip = /^Q/.test(Q.c) ? chip(`${Q.c} · SJR`, 'qsjr', `background:${colorCu(Q.c)};color:${/Q[12]/.test(Q.c) ? '#fff' : 'var(--azul)'}`, `Cuartil de «${Q.rev}» en el SJR de ${Math.min(anio, ((BIB() || {}).sjr || {}).y1 || anio)}`) : '';
     const chips = [anio ? chip(esc(anio)) : '', qChip, o ? chip(`${fnum(o.citas)} citas`) : '', o && o.fwci != null ? chip(`FWCI ${fnum(o.fwci, 2)}`, '', '', 'Impacto normalizado por campo y año (OpenAlex). 1 = media mundial.') : '', o && o.top1 ? chip('Top 1 % mundial', 'top') : o && o.top10 ? chip('Top 10 % mundial', 'top t10') : '', esCorr(m) ? chip('Autor de correspondencia', 'co') : '', pos ? chip(`Firma ${esc(pos)}${tot ? ' de ' + esc(tot) : ''}`) : '', o && o.oa ? chip('Acceso abierto', 'oa') : ''].join('');
     const aut = esc(autores).replace(yoRe, '<b>$1</b>');
-    return `<article class="merito pub ${sel === m.id ? 'on' : ''} ${m.privado ? 'oculto' : ''}" data-id="${m.id}"><div class="doc">${esc(m.n || '')}</div><div class="tx">
+    return `<article class="merito pub ${sel === m.id ? 'on' : ''} ${m.privado ? 'oculto' : ''}" data-id="${m.id}"><div class="doc">${esc((numVista && numVista.get(m.id)) || m.n || '')}</div><div class="tx">
       <p class="pt">${esc(titulo)}</p>${aut ? `<p class="pa">${aut}</p>` : ''}${revista ? `<p class="pr">${esc(revista)}</p>` : ''}
       <div class="pcs">${chips}${doi ? `<a href="#" class="pch doi" data-url="https://doi.org/${esc(doi.replace(/^https?:\/\/doi\.org\//i, ''))}">DOI</a>` : ''}</div>
       ${htmlPdfs(m)}<button class="pmas" data-mas="${m.id}">Ficha completa${trabajo ? ' y edición' : ''}</button></div></article>`;
@@ -1267,7 +1447,7 @@
   });
   // Documentos que aún no están en ningún mérito: se ven y se colocan desde aquí.
   const nomLimpio = (a) => a.split('/').pop().replace(/\.pdf$/i, '').replace(/_[0-9a-f]{6}$/i, '').replace(/^[0-9a-f]{6}_/i, '').replace(/_/g, ' ');
-  const opcionesAp = () => MENU.flatMap(([, l]) => l || []).filter(([c]) => c && c !== '1' && !(P.datos.ocultos || []).includes(c) && !(actual && actual.c === c)).map(([c, n]) => `<option value="${esc(c)}">${esc(n)}</option>`).join('');
+  const opcionesAp = () => MENU.flatMap(([, l]) => l || []).filter(([c, , h]) => c && h !== 'h' && c !== '1' && !(P.datos.ocultos || []).includes(c) && !(actual && (actual.cm || actual.c) === c)).map(([c, n]) => `<option value="${esc(c)}">${esc(n)}</option>`).join('');
   function pintarDocs() {
     const caja = $('#meritos');
     caja.insertAdjacentHTML('beforeend', `<h2 class="fh" id="dsTit"></h2><p class="cuenta">PDF de tu carpeta que aún no están en ningún mérito. Pulsa <b>Ver</b> para abrirlo al lado y <b>Poner en…</b> para colocarlo.</p><input id="dsFiltro" type="search" placeholder="Buscar por nombre de archivo" aria-label="Buscar documentos"><div id="dsLista"></div>`);
@@ -1357,7 +1537,13 @@
     }
     ligarEdicion(e, id);
     $$('[data-xf]', e).forEach((b) => { b.onclick = () => op('quitarFila', { id, f: +b.dataset.xf }, 'Fila quitada.'); });
-    const mov = (d) => { const l = entradas(buscar(id).cod); const k = l.findIndex((x) => x.id === id) + d; if (k >= 0 && k < l.length) op('mover', { id, cod: buscar(id).cod, pos: k }, 'Entrada movida. Los números se han actualizado.'); };
+    // En una opción del menú se sube o baja respecto a lo que se ve; la posición se guarda dentro del apartado del CVN.
+    const mov = (d) => {
+      const m = buscar(id), todo = P.datos.meritos.filter((x) => x.cod === m.cod && (trabajo || publico(x)));
+      const l = m.vista ? todo.filter((x) => x.vista === m.vista) : todo.filter((x) => !x.vista);
+      const k = l.findIndex((x) => x.id === id) + d;
+      if (k >= 0 && k < l.length) op('mover', { id, cod: m.cod, pos: todo.indexOf(l[k]) }, 'Entrada movida. Los números se han actualizado.');
+    };
     const bS = $('[data-sube]', e); if (bS) bS.onclick = () => mov(-1);
     const bB = $('[data-baja]', e); if (bB) bB.onclick = () => mov(1);
     const bFi = $('[data-fila]', e); if (bFi) bFi.onclick = async () => { const r = await op('nuevaFila', { id }, 'Fila añadida.'); if (r) { const c = $(`.merito[data-id="${id}"] .val[data-f="${r.fila}"]`); if (c) c.click(); } };
@@ -1444,7 +1630,7 @@
       $('#vMarco').removeAttribute('src'); $('#vMarco').removeAttribute('srcdoc'); v.dataset.u = '';
       return;
     }
-    $('#vTit').textContent = `${m.cod === 'SC' ? 'Sin clasificar' : `${m.n && !APD(m.cod).sinNum ? `Nº ${m.n} · ` : ''}${nombreDe(m.cod)}`}${p.nivel !== 'alta' ? ' · sin confirmar' : ''}`;
+    $('#vTit').textContent = `${m.cod === 'SC' ? 'Sin clasificar' : `${m.n && !APD(m.cod).sinNum && !m.vista ? `Nº ${m.n} · ` : ''}${nombreDe(m.vista ? 'v:' + m.vista : m.cod)}`}${p.nivel !== 'alta' ? ' · sin confirmar' : ''}`;
     $('#vTit').title = $('#vTit').textContent;
     if (v.dataset.u !== p.archivo) { v.dataset.u = p.archivo; ponerPdf(p.archivo); }
     v.hidden = false; $('#columnas').classList.add('conpdf');
@@ -1494,7 +1680,7 @@
     document.body.classList.toggle('tribunal', !trabajo);
     pintarCab(); pintarMenu();
     // Si el apartado no existe en esta vista, se vuelve al inicio.
-    if (!trabajo && actual && !actual.ficha && !actual.inicio && !entradas(actual.c).length) actual = null;
+    if (!trabajo && actual && !actual.ficha && !actual.inicio && !(actual.vista ? entradasMenu(actual.cm) : entradas(actual.c)).length) actual = null;
     if (!actual) irInicio(); else { const it = items.find((x) => x.firstElementChild.textContent === actual.bloque || $(`[data-c="${actual.c}"]`, x)); if (it) it.classList.add('activo'); pintarLista(); }
   }
   function irInicio() { elegir(items[0] && items[0].firstElementChild.textContent === 'Inicio' ? items[0] : null, '', 'Inicio'); }

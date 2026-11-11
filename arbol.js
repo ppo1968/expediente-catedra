@@ -74,6 +74,41 @@
     }
     if (!previo) ARBOL.menu.push([nom, l]);
   }
+  // v0.17: opciones del menú que siguen la estructura del disco E: (05_CV_INVESTIGACION_*, 06_CV_TRANSFERENCIA_*…).
+  // Cada una agrupa méritos de un apartado del CVN («cod»); el mérito guarda la opción en «vista».
+  // El CVN, el Word y las carpetas del tribunal siguen usando el apartado del CVN.
+  ARBOL.vistas = {
+    tfg: { cod: '4.2', nom: 'Trabajos fin de grado dirigidos' }, tfm: { cod: '4.2', nom: 'Trabajos fin de máster dirigidos' }, trib_tfg: { cod: '6.13', nom: 'Tribunales de TFG' },
+    gid: { cod: '5.1', nom: 'Grupo de innovación docente' },
+    grupos: { cod: '5.1', nom: 'Grupos de investigación' }, proyectos: { cod: '5.2', nom: 'Proyectos de I+D+i' },
+    articulos: { cod: '6.2', nom: 'Artículos' }, libros: { cod: '6.2', nom: 'Libros y capítulos' }, indicadores: { cod: '6.1', nom: 'Indicadores de calidad y rankings' },
+    comunicaciones: { cod: '6.3', nom: 'Comunicaciones en congresos' }, ponencias: { cod: '6.3', nom: 'Ponencias invitadas y plenarias' }, virtuales: { cod: '6.3', nom: 'Conferencias virtuales' }, jornadas: { cod: '6.4', nom: 'Jornadas y seminarios' },
+    cursos_inv: { cod: '4.4', nom: 'Cursos impartidos' }, master: { cod: '4.4', nom: 'Participación en másteres' }, erasmus: { cod: '4.3', nom: 'Tutorías Erasmus' },
+    tesis: { cod: '4.2', nom: 'Tesis doctorales dirigidas' },
+    editor: { cod: '6.6', nom: 'Editor y revisor de revistas' }, comites: { cod: '6.6', nom: 'Comités de congresos' }, evaluacion: { cod: '5.4', nom: 'Evaluación y consultoría' },
+    trib_tesis: { cod: '6.13', nom: 'Tribunales de tesis' }, trib_plazas: { cod: '6.13', nom: 'Tribunales de plazas' },
+    estancias: { cod: '6.8', nom: 'Estancias' }, ayudas: { cod: '6.9', nom: 'Ayudas y becas' }, sexenios: { cod: '6.11', nom: 'Sexenios y quinquenios' },
+    sinubicar: { cod: '6.13', nom: 'Sin ubicar', trabajo: true },
+    contratos: { cod: '5.3', nom: 'Contratos art. 83 y 60' }, sexenio_t: { cod: '6.11', nom: 'Sexenio de transferencia' }, software: { cod: '5.4', nom: 'Software y datos' },
+    asesoramiento: { cod: '5.4', nom: 'Asesoramiento' }, catedras: { cod: '5.4', nom: 'Cátedras' }, creacion: { cod: '5.4', nom: 'Creación de grupo, sociedad y titulación' },
+    formacion_emp: { cod: '5.4', nom: 'Formación y ponencias para empresas' }, divulgacion: { cod: '6.5', nom: 'Divulgación' }, estancias_t: { cod: '6.8', nom: 'Estancias de transferencia' },
+    eventos: { cod: '6.6', nom: 'Organización de eventos' }, reconocimientos: { cod: '5.4', nom: 'Reconocimientos' }, revision: { cod: '6.6', nom: 'Revisión de libros' },
+    gestion: { cod: '2.2', nom: 'Gestión universitaria' }, acreditaciones: { cod: '6.12', nom: 'Acreditaciones' }, premios: { cod: '6.10', nom: 'Premios y distinciones' },
+    colef: { cod: '6.13', nom: 'Colegiación (COLEF)' }, padrino: { cod: '6.13', nom: 'Padrino de promoción' },
+  };
+  const V = (...ids) => ids.map((i) => ['v:' + i, ARBOL.vistas[i].nom]);
+  const H = (t) => ['', t, 'h'];
+  ARBOL.menuV17 = {
+    Docencia: [['4.1', 'Formación académica impartida'], H('Trabajos fin de estudios'), ...V('tfg', 'tfm', 'trib_tfg'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
+    Investigación: [H('Grupos y proyectos'), ...V('grupos', 'proyectos'), H('Producción científica'), ...V('articulos', 'libros', 'indicadores'), H('Congresos y jornadas'), ...V('comunicaciones', 'ponencias', 'virtuales', 'jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Dirección de tesis'), ...V('tesis'), H('Evaluación, comités y tribunales'), ...V('editor', 'comites', 'evaluacion', 'trib_tesis', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
+    Transferencia: V('contratos', 'sexenio_t', 'software', 'asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision'),
+    'Otros méritos': V('gestion', 'acreditaciones', 'premios', 'colef', 'padrino'),
+  };
+  // El menú inicial ya sale con la estructura de E:.
+  for (const [b, l] of Object.entries(ARBOL.menuV17)) {
+    const i = ARBOL.menu.findIndex((x) => x[0] === b);
+    if (i >= 0) ARBOL.menu[i] = [b, l]; else ARBOL.menu.splice(ARBOL.menu.findIndex((x) => x[0] === 'Complementos'), 0, [b, l]);
+  }
   ARBOL.menu.push(['Ajustes', [['', 'Publicar en la web'], ['', 'Generar HTML'], ['', 'Generar ejecutable para PC'], ['', 'Generar ejecutable para Mac'], ['', 'Generar ZIP'], ['', 'Generar carpeta del CV'], ['', 'Generar CV en Word (CVN)'], ['', 'Completar y clasificar méritos'], ['', 'Incorporar méritos nuevos'], ['', 'Menú vertical u horizontal'], ['', 'Cerrar expediente'], ['', 'Documentos sin usar'], ['', 'Apartados eliminados']]]);
   if (typeof module !== 'undefined' && module.exports) module.exports = ARBOL;
   else raiz.ARBOL = ARBOL;

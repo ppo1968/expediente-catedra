@@ -619,3 +619,64 @@ a.pch.doi{background:#fff;box-shadow:inset 0 0 0 1px var(--linea);color:var(--ma
 @media (max-width:1100px){.bib-g{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 @media (max-width:800px){.bib-g,.bm{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){.kpi,.bc,.bl i b{animation:none}.bg-svg.anim .bg-m,.bg-lin.dib{animation:none;stroke-dashoffset:0}}
+/* v0.17 · 4.2: tesis, TFM y TFG en bloques separados */
+.tfe-nav{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 6px}
+.tfe-nav b{margin-left:4px;color:var(--rojo)}
+.tfe-gr{display:flex;align-items:baseline;gap:10px;margin:26px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--azul);font-size:19px;font-weight:600;scroll-margin-top:12px}
+.tfe-gr span{font-size:14px;font-weight:500;color:var(--rojo)}
+/* v0.17 · 4.1: horas de docencia */
+.hs-k{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-bottom:10px}
+.hs-tot{flex:1 1 100%;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hs-tot b{font-size:30px;font-weight:600;color:var(--azul);letter-spacing:-.5px}
+.hs-tot span{color:var(--suave);font-size:14px}
+.hs-u{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--linea);background:#fff;border-radius:999px;padding:5px 12px;font:inherit;font-size:13.5px;color:var(--azul);cursor:pointer}
+.hs-u i{width:10px;height:10px;border-radius:2px;background:var(--c)}
+.hs-u b{font-weight:600}
+.hs-u.on{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
+.hs-as{font-size:13px;color:var(--suave)}
+.hs .lt-col.on .lt-hit{fill:rgba(0,32,40,.06)}
+.hs-tab{margin-top:8px}
+.hs-tab summary{cursor:pointer;color:var(--azul);font-weight:500;padding:4px 0}
+.hs-tab .bs{margin:6px 0}
+.hs-tab table{margin-top:6px}
+.hs-tab td.num{text-align:right;white-space:nowrap}
+/* v0.17 · Trayectoria: río de méritos por bloque, etapas e hitos */
+.rio-cab{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:2px 0 8px}
+.rio-t{margin:0;font-size:14px;color:var(--suave)}
+.rio-ley{display:flex;flex-wrap:wrap;gap:6px}
+.rio-b{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linea);background:#fff;border-radius:999px;padding:4px 11px;font:inherit;font-size:13px;color:var(--azul);cursor:pointer;transition:opacity .15s}
+.rio-b i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.rio-b small{color:var(--suave)}
+.rio-b.off{opacity:.45}
+.rio-b.off i{background:none;outline:1.5px solid var(--c);outline-offset:-1.5px}
+.rio{position:relative;background:#fff;border:1px solid var(--linea);border-radius:8px;padding:6px 10px 4px}
+.rio svg{display:block;width:100%;height:auto;overflow:visible}
+.rio-et{fill:transparent}
+.rio-et.par{fill:rgba(0,32,40,.035)}
+.rio-etn{font-size:12px;fill:var(--suave);font-weight:500;letter-spacing:.2px}
+.rio-c{fill-opacity:.88;stroke:#fff;stroke-width:1.2;transition:fill-opacity .15s}
+.rio-capas:hover .rio-c{fill-opacity:.55}
+.rio-capas .rio-c:hover{fill-opacity:1}
+.rio.entra .rio-capas{animation:rioEntra 1.2s cubic-bezier(.2,.7,.2,1) both;transform-origin:0 100%}
+@keyframes rioEntra{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.rio-h line{stroke:var(--rojo);stroke-width:1;stroke-dasharray:2 3;opacity:.55}
+.rio-h circle{fill:var(--rojo);stroke:#fff;stroke-width:2}
+.rio-h text{font-size:11.5px;fill:var(--azul);font-weight:500;paint-order:stroke;stroke:#fff;stroke-width:3px}
+.rio-sel{stroke:var(--azul);stroke-width:2}
+.rio-z{fill:transparent;cursor:pointer}
+.rio-z:hover{fill:rgba(0,32,40,.05)}
+.rio-tip{position:absolute;z-index:5;pointer-events:none;background:var(--azul);color:#fff;border-radius:6px;padding:8px 11px;font-size:12.5px;line-height:1.5;display:flex;flex-direction:column;min-width:170px;box-shadow:0 8px 20px rgba(0,32,40,.25)}
+.rio-tip b{font-size:16px}
+.rio-tip em{font-style:normal;color:#ffb4a6}
+.rio-tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px}
+.rio-bq{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 6px}
+.rio-k{display:flex;flex-direction:column;align-items:flex-start;min-width:120px;padding:10px 14px;border:1px solid var(--linea);border-left:5px solid var(--c);border-radius:6px;background:#fff;font:inherit;color:var(--azul);cursor:pointer;text-align:left}
+.rio-k b{font-size:24px;line-height:1.1}
+.rio-k span{font-size:13px;color:var(--suave)}
+.rio-k:hover,.rio-k.on{box-shadow:0 0 0 2px var(--c)}
+.rio-l{margin-top:8px}
+@media (prefers-reduced-motion: reduce){.rio.entra .rio-capas{animation:none}}
+/* v0.17 · línea temporal de puntos */
+.lt-pts .lt-p{cursor:pointer;stroke:#fff;stroke-width:1;transition:r .12s}
+.lt-pts .lt-p:hover{stroke:var(--azul);stroke-width:2}
+.lt-pts .lt-col:hover .lt-hit,.lt-pts .lt-col.on .lt-hit{fill:rgba(0,32,40,.05)}
