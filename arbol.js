@@ -95,14 +95,16 @@
     eventos: { cod: '6.6', nom: 'Organización de eventos' }, reconocimientos: { cod: '5.4', nom: 'Reconocimientos' }, revision: { cod: '6.6', nom: 'Revisión de libros' },
     gestion: { cod: '2.2', nom: 'Gestión universitaria' }, acreditaciones: { cod: '6.12', nom: 'Acreditaciones' }, premios: { cod: '6.10', nom: 'Premios y distinciones' },
     colef: { cod: '6.13', nom: 'Colegiación (COLEF)' }, padrino: { cod: '6.13', nom: 'Padrino de promoción' },
-    tit_deportivas: { cod: '3.3', nom: 'Titulaciones deportivas' }, cursos_transf: { cod: '3.4', nom: 'Cursos orientados a la transferencia' }, otros_cursos: { cod: '3.5', nom: 'Otros cursos recibidos' },
+    tit_deportivas: { cod: '3.3', nom: 'Titulaciones deportivas' }, cursos_transf: { cod: '3.4', nom: 'Cursos orientados a la transferencia' }, otros_cursos: { cod: '3.5', nom: 'Otros cursos recibidos' }, libros_doc: { cod: '4.5', nom: 'Libros docentes' },
+    libros_editor: { cod: '6.2', nom: 'Libros como editor' }, libros_autor: { cod: '6.2', nom: 'Libros publicados' }, capitulos: { cod: '6.2', nom: 'Capítulos de libro' }, capitulos_actas: { cod: '6.2', nom: 'Capítulos en libros de actas' },
+    libros_transf: { cod: '5.4', nom: 'Libros de transferencia' },
   };
   const V = (...ids) => ids.map((i) => ['v:' + i, ARBOL.vistas[i].nom]);
   const H = (t) => ['', t, 'h'];
   ARBOL.menuV17 = {
-    Docencia: [['4.1', 'Formación académica impartida'], H('Trabajos fin de estudios'), ...V('tfg', 'tfm', 'trib_tfg'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
-    Investigación: [H('Grupos y proyectos'), ...V('grupos', 'proyectos'), H('Producción científica'), ...V('articulos', 'libros', 'indicadores'), H('Congresos y jornadas'), ...V('comunicaciones', 'ponencias', 'virtuales', 'jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Dirección de tesis'), ...V('tesis'), H('Evaluación, comités y tribunales'), ...V('editor', 'comites', 'evaluacion', 'trib_tesis', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
-    Transferencia: V('contratos', 'sexenio_t', 'software', 'asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision'),
+    Docencia: [['4.1', 'Formación académica impartida'], H('Trabajos fin de estudios'), ...V('tfg', 'tfm', 'trib_tfg'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ...V('libros_doc'), ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
+    Investigación: [...V('indicadores'), H('Grupos y proyectos'), ...V('grupos', 'proyectos'), H('Producción científica'), ...V('articulos', 'libros_editor', 'libros_autor', 'capitulos', 'capitulos_actas'), H('Congresos y jornadas'), ...V('comunicaciones', 'ponencias', 'virtuales', 'jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Dirección de tesis'), ...V('tesis'), H('Evaluación, comités y tribunales'), ...V('editor', 'comites', 'evaluacion', 'trib_tesis', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
+    Transferencia: V('contratos', 'sexenio_t', 'software', 'asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'libros_transf', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision'),
     'Otros méritos': V('gestion', 'tit_deportivas', 'acreditaciones', 'premios', 'colef', 'padrino'),
   };
   // El menú inicial ya sale con la estructura de E:.

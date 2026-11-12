@@ -709,3 +709,27 @@ a.pch.doi{background:#fff;box-shadow:inset 0 0 0 1px var(--linea);color:var(--ma
 .bu-f{gap:8px;align-items:center}
 .bu-n{display:block;font-weight:500;overflow-wrap:anywhere}
 .bu-f small.cuenta{display:block;margin:2px 0 0}
+
+/* v0.17: resumen de los subapartados de libros */
+.rl{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:14px 16px;margin:10px 0 14px;display:flex;flex-direction:column;gap:12px}
+.rl-ks{display:flex;gap:10px;flex-wrap:wrap}
+.rl-k{background:var(--azul);color:#fff;border-radius:6px;padding:10px 16px;display:flex;flex-direction:column;min-width:120px}
+.rl-k b{font-size:24px;font-weight:600}.rl-k span{font-size:12.5px;opacity:.85}
+.rl-ed{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.rl-et{font-size:13px;color:var(--suave);margin-right:4px}
+.rl-c{border:1px solid var(--linea);border-radius:999px;padding:3px 11px;font-size:13px}
+.rl-c b{color:var(--rojo);margin-left:3px}
+
+/* v0.17: calidad de la editorial (SPI 2022) */
+.rl-q{font-style:normal;font-size:12px;margin-left:6px;padding:1px 7px;border-radius:999px;background:#e8eef0;color:var(--azul)}
+.rl-q.q1,.pch.spi.q1{background:#0D2A33;color:#fff}.rl-q.q2,.pch.spi.q2{background:#2f5d68;color:#fff}
+.rl-q.no,.pch.spi.no{background:#f1efe8;color:#6b6a65}
+.rl-f{margin:0;font-size:12.5px;color:var(--suave)}
+
+/* v0.17: índice h por base de datos (Indicadores de calidad y rankings) */
+.ind{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:14px 16px;margin:10px 0 14px}
+.ind h3{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--azul)}
+.ind-t{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.ind-k{background:var(--azul);color:#fff;border-radius:6px;padding:12px 16px;display:flex;flex-direction:column;gap:2px}
+.ind-f{font-size:13px;opacity:.85}.ind-k b{font-size:30px;font-weight:600;line-height:1.1}.ind-k small{font-size:12px;opacity:.8}
+.ind-n{margin:10px 0 0;font-size:12.5px;color:var(--suave)}
