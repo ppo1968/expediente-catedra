@@ -10,13 +10,13 @@
     { gr: 'José Pino Ortega', aps: [
       ap('1_Identificacion', '1', 'Identificación', 'Identificacion', { sinNum: true }),
       ap(g2, '2.1', 'Situación profesional actual', 'Situacion_actual'),
-      ap(g2, '2.2', 'Cargos y actividades desempeñados con anterioridad', 'Cargos_anteriores', { tabla: true }),
+      ap(g2, '2.2', 'Puestos docentes con anterioridad', 'Cargos_anteriores', { tabla: true }),
     ] },
     { gr: 'Formación académica recibida', aps: [
       ap(g3, '3.1', 'Estudios de 1º y 2º ciclo, y antiguos ciclos (Licenciados, Diplomados, Ingenieros Superiores, Ingenieros Técnicos, Arquitectos)', 'Estudios_1_2_ciclo', { sub: 'Titulación universitaria' }),
-      ap(g3, '3.2', 'Doctorados', 'Doctorados', { sub: 'Titulación universitaria', sinNum: true }),
-      ap(g3, '3.3', 'Otra formación universitaria de posgrado', 'Otra_formacion_posgrado', { sub: 'Titulación universitaria', sinNum: true }),
-      ap(g3, '3.4', 'Formación especializada, continuada, técnica, profesionalizada, de reciclaje y actualización (distinta a la formación académica reglada y a la sanitaria)', 'Formacion_especializada', { sinNum: true }),
+      ap(g3, '3.2', 'Doctorados', 'Doctorados', { sub: 'Titulación universitaria' }),
+      ap(g3, '3.3', 'Otra formación universitaria de posgrado', 'Otra_formacion_posgrado', { sub: 'Titulación universitaria' }),
+      ap(g3, '3.4', 'Formación especializada, continuada, técnica, profesionalizada, de reciclaje y actualización (distinta a la formación académica reglada y a la sanitaria)', 'Formacion_especializada'),
       ap(g3, '3.5', 'Cursos y seminarios recibidos de perfeccionamiento, innovación y mejora docente, nuevas tecnologías, etc., cuyo objetivo sea la mejora de la docencia', 'Cursos_mejora_docente'),
     ] },
     { gr: 'Actividad docente', aps: [
@@ -27,7 +27,7 @@
       ap(g4, '4.5', 'Material y otras publicaciones docentes o de carácter pedagógico', 'Material_docente'),
       ap(g4, '4.6', 'Proyectos de innovación docente', 'Innovacion_docente'),
       ap(g4, '4.7', 'Aportaciones más relevantes de su CV de docencia', 'Aportaciones_docencia'),
-      ap(g4, '4.8', 'Otros méritos de docencia', 'Otros_meritos_docencia', { sinNum: true }),
+      ap(g4, '4.8', 'Otros méritos de docencia', 'Otros_meritos_docencia'),
     ] },
     { gr: 'Experiencia científica y tecnológica', aps: [
       ap(g5, '5.1', 'Grupos/equipos de investigación, desarrollo o innovación', 'Grupos'),
@@ -42,13 +42,13 @@
       ap(g6, '6.4', 'Trabajos presentados en jornadas, seminarios, talleres de trabajo y/o cursos nacionales o internacionales', 'Jornadas'),
       ap(g6, '6.5', 'Actividades de divulgación', 'Divulgacion'),
       ap(g6, '6.6', 'Comités científicos, técnicos y/o asesores', 'Comites', { sub: 'Gestión de I+D+i y participación en comités científicos' }),
-      ap(g6, '6.7', 'Gestión de I+D+i', 'Gestion', { sub: 'Gestión de I+D+i y participación en comités científicos', sinNum: true }),
+      ap(g6, '6.7', 'Gestión de I+D+i', 'Gestion', { sub: 'Gestión de I+D+i y participación en comités científicos' }),
       ap(g6, '6.8', 'Estancias en centros públicos o privados', 'Estancias', { sub: 'Otros méritos' }),
       ap(g6, '6.9', 'Ayudas y becas obtenidas', 'Ayudas_becas', { sub: 'Otros méritos' }),
       ap(g6, '6.10', 'Premios, menciones y distinciones', 'Premios', { sub: 'Otros méritos' }),
       ap(g6, '6.11', 'Períodos de actividad investigadora, docente y de transferencia del conocimiento', 'Sexenios', { sub: 'Otros méritos' }),
       ap(g6, '6.12', 'Acreditaciones/reconocimientos obtenidos', 'Acreditaciones', { sub: 'Otros méritos' }),
-      ap(g6, '6.13', 'Otros méritos de la actividad investigadora', 'Otros_meritos', { sub: 'Otros méritos', sinNum: true }),
+      ap(g6, '6.13', 'Otros méritos de la actividad investigadora', 'Otros_meritos', { sub: 'Otros méritos' }),
     ] },
     { gr: 'Complementos', fuera: true, aps: [
       ['C.0', 'Méritos que no están en el CVN', 'C.0_No_estan_en_CVN'], ['C.1', 'Reconocimientos', 'C.1_Reconocimientos'], ['C.2', 'Aportaciones más relevantes', 'C.2_Aportaciones_relevantes'],
@@ -95,6 +95,7 @@
     eventos: { cod: '6.6', nom: 'Organización de eventos' }, reconocimientos: { cod: '5.4', nom: 'Reconocimientos' }, revision: { cod: '6.6', nom: 'Revisión de libros' },
     gestion: { cod: '2.2', nom: 'Gestión universitaria' }, acreditaciones: { cod: '6.12', nom: 'Acreditaciones' }, premios: { cod: '6.10', nom: 'Premios y distinciones' },
     colef: { cod: '6.13', nom: 'Colegiación (COLEF)' }, padrino: { cod: '6.13', nom: 'Padrino de promoción' },
+    tit_deportivas: { cod: '3.3', nom: 'Titulaciones deportivas' }, cursos_transf: { cod: '3.4', nom: 'Cursos orientados a la transferencia' },
   };
   const V = (...ids) => ids.map((i) => ['v:' + i, ARBOL.vistas[i].nom]);
   const H = (t) => ['', t, 'h'];
@@ -102,14 +103,14 @@
     Docencia: [['4.1', 'Formación académica impartida'], H('Trabajos fin de estudios'), ...V('tfg', 'tfm', 'trib_tfg'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
     Investigación: [H('Grupos y proyectos'), ...V('grupos', 'proyectos'), H('Producción científica'), ...V('articulos', 'libros', 'indicadores'), H('Congresos y jornadas'), ...V('comunicaciones', 'ponencias', 'virtuales', 'jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Dirección de tesis'), ...V('tesis'), H('Evaluación, comités y tribunales'), ...V('editor', 'comites', 'evaluacion', 'trib_tesis', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
     Transferencia: V('contratos', 'sexenio_t', 'software', 'asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision'),
-    'Otros méritos': V('gestion', 'acreditaciones', 'premios', 'colef', 'padrino'),
+    'Otros méritos': V('gestion', 'tit_deportivas', 'acreditaciones', 'premios', 'colef', 'padrino'),
   };
   // El menú inicial ya sale con la estructura de E:.
   for (const [b, l] of Object.entries(ARBOL.menuV17)) {
     const i = ARBOL.menu.findIndex((x) => x[0] === b);
     if (i >= 0) ARBOL.menu[i] = [b, l]; else ARBOL.menu.splice(ARBOL.menu.findIndex((x) => x[0] === 'Complementos'), 0, [b, l]);
   }
-  ARBOL.menu.push(['Ajustes', [['', 'Publicar en la web'], ['', 'Generar HTML'], ['', 'Generar ejecutable para PC'], ['', 'Generar ejecutable para Mac'], ['', 'Generar ZIP'], ['', 'Generar carpeta del CV'], ['', 'Generar CV en Word (CVN)'], ['', 'Completar y clasificar méritos'], ['', 'Incorporar méritos nuevos'], ['', 'Menú vertical u horizontal'], ['', 'Cerrar expediente'], ['', 'Documentos sin usar'], ['', 'Apartados eliminados']]]);
+  ARBOL.menu.push(['Ajustes', [['', 'Publicar en la web'], ['', 'Generar HTML'], ['', 'Generar ejecutable para PC'], ['', 'Generar ejecutable para Mac'], ['', 'Generar ZIP'], ['', 'Generar carpeta del CV'], ['', 'Generar CV en Word (CVN)'], ['', 'Completar y clasificar méritos'], ['', 'Incorporar méritos nuevos'], ['', 'Carpetas de búsqueda de justificantes'], ['', 'Menú vertical u horizontal'], ['', 'Cerrar expediente'], ['', 'Documentos sin usar'], ['', 'Apartados eliminados']]]);
   if (typeof module !== 'undefined' && module.exports) module.exports = ARBOL;
   else raiz.ARBOL = ARBOL;
 })(typeof window !== 'undefined' ? window : globalThis);

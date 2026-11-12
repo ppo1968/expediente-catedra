@@ -556,6 +556,14 @@
     ini.forEach(([a, n], i) => e.push([a, i + 1 < ini.length ? ini[i + 1][0] : a1 + 1, `Universidad de ${n}`]));
     return e.filter(([x, y]) => y > x);
   }
+  // Colores oficiales (manuales de identidad): UAL Pantone 653 C, UEx Pantone 339, UM Pantone 187.
+  const UNI_COL = { Almería: '#316094', Extremadura: '#00B28C', Murcia: '#BD2A33' };
+  const colEt = (n) => { const k = Object.keys(UNI_COL).find((u) => String(n).includes(u)); return k ? UNI_COL[k] : null; };
+  // Atributos del fondo de una etapa y de su rótulo: color de la universidad o el gris de siempre.
+  const etRect = (n, i) => { const c = colEt(n); return c ? `class="rio-et uni" style="--c:${c}"` : `class="rio-et ${i % 2 ? 'par' : ''}"`; };
+  const etTxt = (n) => { const c = colEt(n); return c ? `class="rio-etn uni" style="--c:${c}"` : 'class="rio-etn"'; };
+  // Mezcla un color con blanco (f = parte de blanco): fondo claro para letras negras.
+  const claro = (hex, f) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - f) + 255 * f).toString(16).padStart(2, '0')).join('');
   function pintarTrayectoria() {
     $('#sel1').textContent = 'Trayectoria';
     $('#sel2').textContent = 'Mi carrera, año a año';
@@ -574,15 +582,16 @@
     const hitos = new Map((POR().hitos || []).map(([a, t]) => [+a, t]));
     if (!anioSel || anioSel < a0 || anioSel > a1) anioSel = [...hitos.keys()].filter((a) => a >= a0 && a <= a1).pop() || a1;
     // Geometría. Los hitos se reparten en filas para que sus textos no se pisen.
-    const W = 1000, X = (a) => 30 + ((a - a0) * (W - 60)) / Math.max(1, a1 - a0);
+    // v0.17: el dibujo usa el ancho real de la pantalla (escala 1:1), así no se agranda y cabe entero.
+    const W = Math.max(900, Math.round(($('#meritos').clientWidth || 1022) - 22)), X = (a) => 30 + ((a - a0) * (W - 60)) / Math.max(1, a1 - a0);
     const filasH = [], posH = [...hitos].filter(([a]) => a >= a0 && a <= a1).sort((p, q) => p[0] - q[0]).map(([a, t]) => {
-      const x = X(a), txt = t.length > 34 ? t.slice(0, 33) + '…' : t, w = txt.length * 6.3 + 14, izq = x + w > W - 4;
+      const x = X(a), txt = t.length > 60 ? t.slice(0, 59) + '…' : t, w = txt.length * 6.9 + 30, izq = x + w > W - 4;
       const [i0, i1] = izq ? [x - w, x] : [x, x + w];
       let f = filasH.findIndex((fin) => i0 > fin + 6); if (f < 0) { f = filasH.length; filasH.push(-1e9); }
       filasH[f] = i1;
       return { a, t, txt, x, f, izq };
     });
-    const top = 52 + filasH.length * 22, Hr = 230, bot = top + Hr, Y = (v) => bot - (v / max) * (Hr - 6);
+    const top = 52 + filasH.length * 24, Hr = 170, bot = top + Hr, Y = (v) => bot - (v / max) * (Hr - 6);
     const curva = (pts) => { let d = `M${pts[0][0]},${pts[0][1]}`; for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], mx = (x0 + x1) / 2; d += ` C${mx},${y0} ${mx},${y1} ${x1},${y1}`; } return d; };
     let base = anios.map(() => 0), capas = '';
     vis.forEach((b) => {
@@ -595,12 +604,13 @@
     // Etapas al fondo; el nombre solo se escribe si cabe (si no, sale al pasar el ratón).
     const fondo = et.map(([x, y, n], i) => {
       const x1 = X(x) - (x === a0 ? 30 : 0), w = X(Math.min(y, a1 + 0.5)) - X(x) + (x === a0 ? 30 : 0), corto = n.replace('Universidad de ', '');
-      const cab = n.length * 6.6 + 12 < w ? n : corto.length * 6.6 + 12 < w ? corto : '';
-      return `<g><rect x="${x1}" y="18" width="${w}" height="${bot - 18}" class="rio-et ${i % 2 ? 'par' : ''}"/><title>${esc(n)} (${x}–${Math.min(y, a1 + 1) - 1})</title>${cab ? `<text x="${X(x) + 6}" y="34" class="rio-etn">${esc(cab)}</text>` : ''}</g>`;
+      const cab = n.length * 7.6 + 12 < w ? n : corto.length * 7.6 + 12 < w ? corto : '';
+      return `<g><rect x="${x1}" y="18" width="${w}" height="${bot - 18}" ${etRect(n, i)}/><title>${esc(n)} (${x}–${Math.min(y, a1 + 1) - 1})</title>${cab ? `<rect class="rio-etp" x="${X(x) + 2}" y="22" width="${cab.length * 7.6 + 16}" height="20" rx="10" fill="${colEt(n) ? claro(colEt(n), 0.55) : '#e4e2dc'}"/><text x="${X(x) + 10}" y="36" ${etTxt(n)}>${esc(cab)}</text>` : ''}</g>`;
     }).join('');
+    // Hitos: punto y etiqueta con el color de la universidad de ese año, letras negras (el ancho de la etiqueta se ajusta al texto al pintar).
     const flags = posH.map(({ a, t, txt, x, f, izq }) => {
-      const y = 56 + f * 22;
-      return `<g class="rio-h" data-a="${a}"><line x1="${x}" x2="${x}" y1="${y}" y2="${bot}" /><circle cx="${x}" cy="${y}" r="5"/><text x="${izq ? x - 8 : x + 8}" y="${y + 4}" text-anchor="${izq ? 'end' : 'start'}">${esc(txt)}</text><title>${a} · ${esc(t)}</title></g>`;
+      const y = 58 + f * 24, e = et.find(([p, q]) => a >= p && a < q), c = e && colEt(e[2]);
+      return `<g class="rio-h" data-a="${a}" data-izq="${izq ? 1 : 0}" style="--c:${c || '#8A8F98'};--cl:${c ? claro(c, 0.55) : '#e4e2dc'}"><line x1="${x}" x2="${x}" y1="${y}" y2="${bot}" /><rect x="${izq ? x - 12 - txt.length * 6.9 - 16 : x + 9}" y="${y - 10}" width="${txt.length * 6.9 + 16}" height="20" rx="10"/><circle cx="${x}" cy="${y}" r="5"/><text x="${izq ? x - 20 : x + 17}" y="${y + 4}" text-anchor="${izq ? 'end' : 'start'}">${esc(txt)}</text><title>${a} · ${esc(t)}</title></g>`;
     }).join('');
     const ejes = anios.filter((a) => a % 5 === 0).map((a) => `<text x="${X(a)}" y="${bot + 18}" text-anchor="middle" class="lt-txt">${a}</text>`).join('');
     const zonas = anios.map((a) => `<rect class="rio-z" data-a="${a}" x="${X(a) - (W - 60) / Math.max(1, a1 - a0) / 2}" y="18" width="${(W - 60) / Math.max(1, a1 - a0)}" height="${bot - 18 + 20}"/>`).join('');
@@ -615,6 +625,15 @@
     $('#meritos').innerHTML = `<div class="rio-cab"><p class="rio-t">${ms.length.toLocaleString('es-ES', { useGrouping: 'always' })} méritos de ${a0} a ${a1}</p><div class="rio-ley">${ley}</div></div>
       <div class="rio ${trAnimar ? 'entra' : ''}"><svg viewBox="0 0 ${W} ${bot + 26}" role="img" aria-label="Méritos por año y bloque, con los hitos de la carrera">${fondo}<g class="rio-capas">${capas}</g>${ejes}${flags}${sel}${zonas}</svg><div class="rio-tip" hidden></div></div>${panel}`;
     trAnimar = false;
+    $$('.rio-etp').forEach((r) => { const t = r.nextElementSibling; try { const w = t.getComputedTextLength(); if (w) r.setAttribute('width', w + 16); } catch { /* sin medida */ } });
+    // Ajusta cada etiqueta de hito al ancho real de su texto.
+    $$('.rio-h').forEach((g) => {
+      const t = $('text', g), r = $('rect', g), x = +$('circle', g).getAttribute('cx');
+      let w; try { w = t.getComputedTextLength() + 18; } catch { return; }
+      if (!w || w < 20) return;
+      r.setAttribute('width', w);
+      r.setAttribute('x', g.dataset.izq === '1' ? x - 11 - w : x + 8);
+    });
     // Interacción
     const ir = (a) => { anioSel = a; pintarTrayectoria(); };
     const tip = $('.rio-tip'), caja = $('.rio');
@@ -665,7 +684,11 @@
     const avisoC0 = actual.c === 'C.0' && trabajo ? '<p class="cuenta">Estaban en el Word y no se han encontrado en el CVN. El tribunal no las ve, salvo las que marques «Mostrar al tribunal».</p>' : '';
     const verCuenta = trabajo && !APD(actual.c).sinNum;
     const avisoSC = actual.c === 'SC' && trabajo ? `<div class="clas-ban"><div><b>Clasificación automática</b><span>El programa lee cada documento, propone dónde va y tú confirmas.</span></div><button class="bs prim" id="bClasSC">Clasificar automáticamente</button></div>` : '';
-    caja.innerHTML = (esPub ? (actual.vista === 'libros' ? '' : htmlBiblio()) + htmlFiltroPubs() : '') + avisoSC + herrAp + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
+    // v0.17: justificantes automáticos. El programa busca en E: el PDF de cada entrada sin justificante y tú solo validas.
+    const clave = actual.cm || actual.c, sinJust = trabajo && actual.c !== 'SC' && actual.c !== 'PV' ? l.filter((m) => !m.nota && !m.dato && !m.pdfs.length) : [];
+    if (propJ && propJ.k !== clave) propJ = null;
+    const htmlPJ = !sinJust.length && !propJ ? '' : propJ ? htmlPropJ() : `<div class="pj-ban"><div><b>${sinJust.length} ${sinJust.length === 1 ? 'entrada sin justificante' : 'entradas sin justificante'}</b><span>El programa busca en E: el documento de cada una y te lo propone. Tú solo validas.</span></div><button class="bs prim" id="bPJ">Buscar justificantes automáticamente</button></div>`;
+    caja.innerHTML = (esPub ? (actual.vista === 'libros' ? '' : htmlBiblio()) + htmlFiltroPubs() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
     const bN = $('#bNE'); if (bN) bN.onclick = async () => { const r = await op('nuevo', { cod: actual.vista ? actual.cm : actual.c }, 'Entrada añadida.'); if (r) { const e = $(`.merito[data-id="${r.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); const c = $('.val.ed', e); if (c) c.click(); } } };
     $$('[data-ir]', caja).forEach((t) => { t.onclick = () => { const e = $(`.merito[data-id="${t.dataset.ir}"]`); if (e) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bQ = $('#bQA'); if (bQ) bQ.onclick = () => { quitando = !quitando; pintarLista(); };
@@ -681,6 +704,7 @@
     ligarHoras(caja);
     $$('[data-tfe]', caja).forEach((b) => { b.onclick = () => { const g = $(`#tfe-${b.dataset.tfe}`, caja); if (g) g.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bCS = $('#bClasSC'); if (bCS) bCS.onclick = () => irClasificar('sueltos');
+    ligarPropJ(caja, sinJust, clave);
     if (actual.c === 'SC' && trabajo) pintarDocs();
   }
   // ---------- Línea temporal arriba del apartado: se construye con las fechas de cada mérito ----------
@@ -701,7 +725,7 @@
     '6.3': { modo: 'anual', color: 'uno', que: 'trabajos' },
   };
   const COLORES = {
-    uni: [['A', /almer/i, 'Almería', '#D85A30'], ['E', /extremadura/i, 'Extremadura', '#7F77DD'], ['M', /murcia/i, 'Murcia', '#1D9E75'], ['O', /./, 'Otras entidades', '#888780']],
+    uni: [['A', /almer/i, 'Almería', '#316094'], ['E', /extremadura/i, 'Extremadura', '#00B28C'], ['M', /murcia/i, 'Murcia', '#BD2A33'], ['O', /./, 'Otras entidades', '#888780']],
     rol: [['IP', null, 'Investigador principal', '#D85A30'], ['IN', null, 'Investigador', '#7F77DD']],
     uno: [['T', null, 'Trabajos presentados', '#1D9E75']],
     mat: [['LI', null, 'Libros', '#2F6FB0'], ['CA', null, 'Capítulos', '#7F77DD'], ['VI', null, 'Vídeos y materiales en DIGITUM', '#1D9E75'], ['OT', null, 'Otros materiales', '#888780']],
@@ -714,6 +738,48 @@
     return /tesis/i.test(t) ? 'TD' : /m[áa]ster/i.test(t) ? 'TM' : /grado/i.test(t) ? 'TG' : 'X';
   };
   const resumenTFE = (l) => TIPOS_TFE.map(([k, , c]) => [l.filter((m) => tipoTFE(m) === k).length, c]).filter(([n, c]) => n && (c !== 'sin tipo' || trabajo)).map(([n, c]) => `${n} ${c}`).join(' · ');
+  // ---------- Justificantes automáticos (v0.17) ----------
+  // propJ = { k: apartado, lista: [{ id, t, anio, cand: [...] }], marca: Set de ids, elegido: { id: índice } }
+  let propJ = null;
+  function htmlPropJ() {
+    const L = propJ.lista, con = L.filter((x) => x.cand.length), sin = L.length - con.length;
+    const fila = (x) => {
+      const k = propJ.elegido[x.id] || 0, c = x.cand[k];
+      return `<div class="pj-f ${propJ.marca.has(x.id) ? 'on' : ''}"><label class="pj-ck"><input type="checkbox" data-pjm="${x.id}" ${propJ.marca.has(x.id) ? 'checked' : ''}></label>
+        <div class="pj-m"><b>${esc(x.t)}</b><small>${esc(x.anio || '')}</small></div>
+        <div class="pj-d"><span class="bjn" style="--n:${c.nota}%">${c.nota}</span>${x.cand.length > 1 ? `<select class="bs" data-pjs="${x.id}">${x.cand.map((d, i) => `<option value="${i}" ${i === k ? 'selected' : ''}>${esc(d.nombre)} (${d.nota})</option>`).join('')}</select>` : `<span class="pj-n">${esc(c.nombre)}</span>`}<small>${esc(c.carpeta)}</small></div>
+        <button class="bs" data-pjv="${x.id}">Ver</button></div>`;
+    };
+    return `<div class="pj"><div class="pj-cab"><b>Justificantes propuestos</b><span>${con.length} con propuesta${sin ? ` · ${sin} sin documento parecido en E:` : ''}${propJ.disco ? '' : ' · el disco E: no está conectado'}. Marca los correctos y pulsa «Aceptar».</span></div>
+      ${con.map(fila).join('') || '<p class="cuenta">No he encontrado documentos parecidos.</p>'}
+      <div class="pj-pie"><button class="bs prim" id="pjOk" ${propJ.marca.size ? '' : 'disabled'}>Aceptar ${propJ.marca.size} ${propJ.marca.size === 1 ? 'justificante' : 'justificantes'}</button><button class="bs" id="pjTodo">Marcar todos</button><button class="bs" id="pjNada">Desmarcar</button><button class="bs" id="pjX">Cerrar</button></div></div>`;
+  }
+  function ligarPropJ(caja, sinJust, clave) {
+    const b = $('#bPJ', caja);
+    if (b) b.onclick = async () => {
+      b.textContent = 'Buscando en E:…'; b.disabled = true;
+      const r = await window.api.proponerJust(sinJust.map((m) => m.id));
+      if (r.error) { b.textContent = 'Buscar justificantes automáticamente'; b.disabled = false; return; }
+      // Nada sale marcado: cada justificante lo valida el usuario (puede usar «Marcar todos»).
+      propJ = { k: clave, lista: r.lista, disco: r.disco, elegido: {}, marca: new Set() };
+      pintarLista();
+    };
+    if (!propJ) return;
+    const cand = (id) => { const x = propJ.lista.find((z) => z.id === id); return x.cand[propJ.elegido[id] || 0]; };
+    $$('[data-pjm]', caja).forEach((c) => { c.onchange = () => { const id = +c.dataset.pjm; if (c.checked) propJ.marca.add(id); else propJ.marca.delete(id); pintarLista(); }; });
+    $$('[data-pjs]', caja).forEach((s) => { s.onchange = () => { propJ.elegido[+s.dataset.pjs] = +s.value; pintarLista(); }; });
+    $$('[data-pjv]', caja).forEach((v) => { v.onclick = () => { const d = cand(+v.dataset.pjv); verNuevo = d.origen === 'suelto' ? d.archivo : d.ruta; verLibre = true; pintarVisor(); }; });
+    const t = $('#pjTodo', caja); if (t) t.onclick = () => { propJ.lista.forEach((x) => { if (x.cand.length) propJ.marca.add(x.id); }); pintarLista(); };
+    const n = $('#pjNada', caja); if (n) n.onclick = () => { propJ.marca.clear(); pintarLista(); };
+    const x = $('#pjX', caja); if (x) x.onclick = () => { propJ = null; pintarLista(); };
+    const ok = $('#pjOk', caja);
+    if (ok) ok.onclick = async () => {
+      const lista = [...propJ.marca].map((id) => { const d = cand(id); return d.origen === 'suelto' ? { origen: 'suelto', archivo: d.archivo, id } : { origen: 'disco', ruta: d.ruta, pista: d.carpeta + '/' + d.nombre, id }; });
+      const nOk = lista.length;
+      verLibre = false; verNuevo = null; propJ = null;
+      await op('colocarLista', { lista }, `${nOk} ${nOk === 1 ? 'justificante añadido' : 'justificantes añadidos'}.`);
+    };
+  }
   let numVista = null; // numeración propia dentro de cada bloque
   // En una opción del menú (v0.17) las entradas se numeran 1, 2, 3… dentro de esa opción.
   const conNumVista = (l, pintar) => { if (!actual || !actual.vista) return pintar(); numVista = new Map(l.map((m, i) => [m.id, i + 1])); try { return pintar(); } finally { numVista = null; } };
@@ -770,7 +836,7 @@
     let s = etapas(y0, y1).map(([a, b, nom], i) => {
       const xa = x0 + (Math.max(a, y0) - y0) * w, wb = (Math.min(b, y1 + 1) - Math.max(a, y0)) * w, corto = nom.replace('Universidad de ', '');
       const cab = nom.length * 6.3 + 10 < wb ? nom : corto.length * 6.3 + 10 < wb ? corto : '';
-      return `<g><rect x="${xa}" y="0" width="${wb}" height="${top + H + 2}" class="rio-et ${i % 2 ? 'par' : ''}"/><title>${esc(nom)}</title>${cab ? `<text x="${xa + 5}" y="13" class="rio-etn">${esc(cab)}</text>` : ''}</g>`;
+      return `<g><rect x="${xa}" y="0" width="${wb}" height="${top + H + 2}" ${etRect(nom, i)}/><title>${esc(nom)}</title>${cab ? `<text x="${xa + 5}" y="13" ${etTxt(nom)}>${esc(cab)}</text>` : ''}</g>`;
     }).join('');
     s += `<line x1="${x0}" x2="${W - 8}" y1="${top + H + 2}" y2="${top + H + 2}" class="lt-eje"/>`;
     for (let y = y0; y <= y1; y++) {
@@ -821,25 +887,34 @@
       return `<div class="linea" data-lt="${esc(JSON.stringify(datos))}" data-modo="${modo}">${ley.replace('</div>', total + '</div>')}<svg viewBox="0 0 ${W} ${H + 28}" role="img" aria-label="Entradas por ${modo === 'cursos' ? 'curso académico' : 'año'}">${s}</svg><p class="lt-det">Pulsa ${modo === 'cursos' ? 'un curso' : 'un año'} para ver sus entradas.</p></div>`;
     }
     const y0b = Math.floor(Math.min(...T.map((t) => t.ini)));
-    const L = 330, X = (v) => L + ((v - y0b) * (W - L - 70)) / Math.max(1, hoy - y0b);
+    // v0.17: ancho real de pantalla y eje hasta el final del curso actual (p. ej. 2026 y 2027 en el curso 2026/27).
+    const aHoy = new Date().getFullYear(), cFin = new Date().getMonth() >= 8 ? aHoy + 1 : aHoy;
+    const WB = Math.max(W, Math.round(($('#meritos') ? $('#meritos').clientWidth : W) - 60));
+    const L = 330, X = (v) => L + ((v - y0b) * (WB - L - 90)) / Math.max(1, cFin - y0b);
     const fil = 26, H = T.length * fil, paso = hoy - y0b > 12 ? 5 : 2;
     // Etapas de la carrera al fondo (Almería, Extremadura, Murcia), como en la Trayectoria.
-    let s = etapas(y0b, Math.floor(hoy)).map(([a, b, n], i) => `<rect x="${X(Math.max(a, y0b))}" y="0" width="${Math.max(0, X(Math.min(b, hoy)) - X(Math.max(a, y0b)))}" height="${H}" class="rio-et ${i % 2 ? 'par' : ''}"><title>${esc(n)}</title></rect>`).join('');
-    for (let y = Math.ceil(y0b / paso) * paso; y <= hoy; y += paso) s += `<line x1="${X(y)}" x2="${X(y)}" y1="0" y2="${H}" class="lt-red"/><text x="${X(y)}" y="${H + 18}" text-anchor="middle" class="lt-txt">${y}</text>`;
+    let s = etapas(y0b, cFin).map(([a, b, n], i) => `<rect x="${X(Math.max(a, y0b))}" y="0" width="${Math.max(0, X(Math.min(b, cFin)) - X(Math.max(a, y0b)))}" height="${H}" ${etRect(n, i)}><title>${esc(n)}</title></rect>`).join('');
+    const marcas = new Set(); for (let y = Math.ceil(y0b / paso) * paso; y <= cFin; y += paso) marcas.add(y);
+    // Los años del curso actual siempre se escriben; los demás, solo si no se pisan con ellos (un año ocupa unos 44 px).
+    const anchoA = 44, juntos = X(cFin) - X(aHoy) < anchoA;
+    for (const y of [...marcas]) if (Math.abs(X(y) - X(aHoy)) < anchoA || Math.abs(X(y) - X(cFin)) < anchoA) marcas.delete(y);
+    if (juntos) marcas.add(cFin); else { marcas.add(aHoy); marcas.add(cFin); }
+    [...marcas].sort((p, q) => p - q).forEach((y) => { const act = y >= aHoy; s += `<line x1="${X(y)}" x2="${X(y)}" y1="0" y2="${H}" class="lt-red"/><text x="${X(y)}" y="${H + 18}" text-anchor="middle" class="lt-txt ${act ? 'lt-act' : ''}">${juntos && y === cFin && cFin > aHoy ? `${aHoy}–${String(cFin).slice(2)}` : y}</text>`; });
+    if (cFin > aHoy) s += `<text x="${(X(aHoy) + X(cFin)) / 2}" y="${H + 34}" text-anchor="middle" class="lt-txt lt-cur">curso ${aHoy}/${String(cFin).slice(2)}</text>`;
     T.forEach((t, i) => {
       const y = i * fil, nom = t.nom.length > 44 ? t.nom.slice(0, 43) + '…' : t.nom, a = Math.floor(t.ini), b = t.curso ? 'hoy' : t.sinFin ? '¿?' : Math.floor(t.fin);
-      s += `<g class="lt-col" data-ltid="${t.id}"><rect x="0" y="${y}" width="${W}" height="${fil}" class="lt-hit"/><title>${esc(t.nom)} · ${a}–${b}</title><text x="${L - 10}" y="${y + 17}" text-anchor="end" class="lt-nom">${esc(nom)}</text>`;
+      s += `<g class="lt-col" data-ltid="${t.id}"><rect x="0" y="${y}" width="${WB}" height="${fil}" class="lt-hit"/><title>${esc(t.nom)} · ${a}–${b}</title><text x="${L - 10}" y="${y + 17}" text-anchor="end" class="lt-nom">${esc(nom)}</text>`;
       s += `<rect x="${X(t.ini)}" y="${y + 5}" width="${Math.max(5, X(t.fin) - X(t.ini))}" height="16" rx="3" fill="${t.color}"/>`;
       if (t.sinFin) s += `<line x1="${X(t.fin)}" x2="${X(t.fin) + 26}" y1="${y + 13}" y2="${y + 13}" stroke="${t.color}" stroke-width="3" stroke-dasharray="3 3"/>`;
       if (t.curso) s += `<text x="${X(t.fin) + 6}" y="${y + 17}" class="lt-txt">en curso</text>`;
       s += '</g>';
     });
-    return `<div class="linea">${ley}<svg viewBox="0 0 ${W} ${H + 26}" role="img" aria-label="Duración de cada entrada">${s}</svg><p class="lt-det">Pulsa una barra para ir a su ficha.</p></div>`;
+    return `<div class="linea lt-barras">${ley}<svg viewBox="0 0 ${WB} ${H + 40}" role="img" aria-label="Duración de cada entrada">${s}</svg><p class="lt-det">Pulsa una barra para ir a su ficha.</p></div>`;
   }
   // ---------- 4.1: horas de docencia de los certificados oficiales (v0.17) ----------
   // Total, gráfico de horas por curso apilado por universidad y tabla que se filtra por universidad o curso.
   let horasFil = { uni: null, curso: null };
-  const UNIS = [['Almería', '#D85A30'], ['Extremadura', '#7F77DD'], ['Murcia', '#1D9E75']];
+  const UNIS = [['Almería', '#316094'], ['Extremadura', '#00B28C'], ['Murcia', '#BD2A33']];
   const fh = (h) => `${Number(h).toLocaleString('es-ES', { maximumFractionDigits: 1, useGrouping: 'always' })} h`;
   function htmlHoras() {
     const H = P.datos.docencia_horas;
@@ -1325,6 +1400,7 @@
           <article class="tarj"><h3>Documentos sin clasificar</h3><p>${(P.datos.sin_merito.length).toLocaleString('es-ES')} PDF de tu expediente no están en ningún mérito. Se proponen por su DOI, su texto y la carpeta de donde vinieron.</p><div class="fil"><button class="bs prim" data-cl="sueltos" ${P.datos.sin_merito.length ? '' : 'disabled'}>Clasificar</button></div></article>
           <article class="tarj"><h3>Carpeta de origen</h3><p id="orTx">…</p><div class="fil"><button class="bs prim" data-cl="disco">Analizar la carpeta</button><button class="bs" id="orCam">Cambiar…</button></div></article>
         </div></section>
+      <section class="aj" data-sec="busqueda"><h2>Carpetas de búsqueda de justificantes</h2><p class="cuenta">«Buscar justificantes» mira en todas estas carpetas. Tras añadir una, pulsa «Leer documentos» para que el programa lea sus PDF (solo la primera vez; luego lee únicamente los nuevos).</p><div id="buCaja"><p class="cuenta">Cargando…</p></div><div class="fil"><button class="bs prim" id="buAdd">+ Añadir carpeta</button><button class="bs" id="buLeer">Leer documentos</button></div></section>
       <section class="aj" data-sec="nuevos"><h2>Incorporar méritos nuevos</h2><p class="cuenta">Indica la carpeta donde están los PDF nuevos. El programa los lee, propone en qué apartado va cada uno y escribe su texto. Nada se incorpora hasta que lo revisas y lo confirmas mérito a mérito.</p><div id="nuCaja"><p class="cuenta">Cargando…</p></div></section>
       <section class="aj" data-sec="menu"><h2>Menú</h2><div class="opc" role="group" aria-label="Menú"><button data-m="vertical" class="${vert ? 'on' : ''}">Vertical</button><button data-m="horizontal" class="${vert ? '' : 'on'}">Horizontal</button></div></section>
       <section class="aj" data-sec="cerrar"><h2>Cerrar expediente</h2><p class="cuenta">${cerrado ? `Cerrado el ${new Date(cerrado).toLocaleString('es-ES')}. No se puede modificar.` : 'Los números quedan fijos y no se puede modificar nada hasta que lo reabras.'}</p><button class="bs ${cerrado ? '' : 'mal'}" id="bCierra">${cerrado ? 'Reabrir expediente' : 'Cerrar expediente'}</button></section>
@@ -1333,6 +1409,7 @@
     $$('[data-g]', caja).forEach((b) => { b.onclick = () => generar(b.dataset.g); });
     pintarCarpetaNuevos();
     pintarOrigenAj();
+    pintarBusqueda();
     $$('[data-cl]', caja).forEach((b) => { b.onclick = () => irClasificar(b.dataset.cl); });
     const aOA = $('#ajOA'); if (aOA) aOA.onclick = async () => { await actualizarOA(); };
     const oC = $('#orCam'); if (oC) oC.onclick = async () => { const r = await window.api.origen('elegir'); if (!r.cancelado) pintarOrigenAj(); };
@@ -1342,8 +1419,25 @@
     $$('[data-res]', caja).forEach((b) => { b.onclick = () => op('restaurarApartado', { cod: b.dataset.res }, 'Apartado recuperado.'); });
     const O = (actual.opcion || '').toLowerCase();
     pintarPub();
-    const sec = /publicar/.test(O) ? 'publicar' : /clasificar|completar/.test(O) ? 'clasificar' : /nuevos|incorporar/.test(O) ? 'nuevos' : /generar/.test(O) ? 'generar' : /men[uú]/.test(O) ? 'menu' : /cerrar/.test(O) ? 'cerrar' : /documentos/.test(O) ? 'documentos' : /apartados/.test(O) ? 'apartados' : null;
+    const sec = /publicar/.test(O) ? 'publicar' : /clasificar|completar/.test(O) ? 'clasificar' : /nuevos|incorporar/.test(O) ? 'nuevos' : /b[uú]squeda|justificantes/.test(O) ? 'busqueda' : /generar/.test(O) ? 'generar' : /men[uú]/.test(O) ? 'menu' : /cerrar/.test(O) ? 'cerrar' : /documentos/.test(O) ? 'documentos' : /apartados/.test(O) ? 'apartados' : null;
     if (sec) { const e = $(`[data-sec="${sec}"]`); if (e) e.scrollIntoView({ block: 'start' }); }
+  }
+  // ---------- Ajustes → Carpetas de búsqueda de justificantes (v0.17) ----------
+  async function pintarBusqueda(r) {
+    const caja = $('#buCaja'); if (!caja) return;
+    r = r || await window.api.busqueda('ver');
+    caja.innerHTML = r.carpetas.map((c) => `<div class="fila bu-f"><div style="flex:1;min-width:0"><b class="bu-n">${esc(c.carpeta)}</b><small class="cuenta">${c.origen ? 'Carpeta de origen · ' : ''}${c.existe ? `${c.total.toLocaleString('es-ES')} PDF · ${c.leidos === c.total ? 'todos leídos' : `${(c.total - c.leidos).toLocaleString('es-ES')} sin leer`}` : 'no encontrada (¿disco desconectado?)'}</small></div><button class="bs" data-buab="${esc(c.carpeta)}">Abrir</button>${c.origen ? '' : `<button class="bs mal" data-buq="${esc(c.carpeta)}">Quitar</button>`}</div>`).join('');
+    $$('[data-buab]', caja).forEach((b) => { b.onclick = () => window.api.busqueda('abrir', b.dataset.buab); });
+    $$('[data-buq]', caja).forEach((b) => { b.onclick = async () => pintarBusqueda(await window.api.busqueda('quitar', b.dataset.buq)); });
+    const add = $('#buAdd'); if (add) add.onclick = async () => { const x = await window.api.busqueda('añadir'); if (!x.cancelado) pintarBusqueda(x); };
+    const leer = $('#buLeer');
+    if (leer) leer.onclick = async () => {
+      leer.disabled = true; leer.textContent = 'Leyendo…';
+      window.api.alProgresoBus((p) => { const b = $('#buLeer'); if (b) b.textContent = `Leyendo ${p.n} de ${p.total}…`; });
+      const x = await window.api.busqueda('leer');
+      leer.disabled = false; leer.textContent = 'Leer documentos';
+      if (x.error) aviso(x.error); else { aviso('Documentos leídos.'); pintarBusqueda(x); }
+    };
   }
   // ---------- Publicar en la web ----------
   let pubVer = false;
