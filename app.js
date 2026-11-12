@@ -219,7 +219,8 @@
     }).join('');
     const mas = trabajo ? `<button class="chip busj" data-busj>Buscar justificante</button><button class="chip nuevo" data-ana>${m.pdfs.length ? '+ PDF' : '+ Añadir PDF'}</button>` : '';
     const spiM = actual && LIBROS_OTROS.has(actual.vista) ? (() => { const q = spiDe(m); return `<span class="pch spi ${q ? 'q' + q.q : 'no'}" title="${q ? esc(q.nom) + ' · ICEE ' + q.icee + ' · SPI 2022' : 'SPI 2022'}">${q ? spiTexto(q) : 'Editorial no incluida en SPI'}</span>`; })() : '';
-    return f || mas || spiM ? `${spiM ? `<div class="pcs">${spiM}</div>` : ''}<div class="pdfs">${f}${mas}</div>` : '';
+    const tesM = htmlTesisExtra(m);
+    return f || mas || spiM || tesM ? `${tesM}${spiM ? `<div class="pcs">${spiM}</div>` : ''}<div class="pdfs">${f}${mas}</div>` : '';
   }
   // Cada entrada se escribe como en el CVN: número y filas «Etiqueta: valor», a una o dos columnas.
   function htmlCelda(p, f, c) {
@@ -678,6 +679,7 @@
     if (actual.tray) { pintarTrayectoria(); $('#lista').scrollTop = y; return; }
     if (actual.ficha) { pintarFicha(); $('#lista').scrollTop = y; ligarEnlaces(caja); return; }
     if (actual.bloque === 'Ajustes') { pintarAjustes(); return; }
+    if (actual.vista === 'internacional') { caja.innerHTML = htmlInternacional(); ligarInternacional(caja); $('#lista').scrollTop = y; return; }
     const esPub = actual.c === '6.2';
     const deAqui = () => (actual.vista ? entradasMenu(actual.cm) : actual.cvn ? todasDe(actual.c) : entradas(actual.c));
     const l = actual.c === 'PV' ? P.datos.meritos.filter((m) => m.nuevo) : esPub ? filtrarPubs(deAqui()) : deAqui();
@@ -689,7 +691,7 @@
     const clave = actual.cm || actual.c, sinJust = trabajo && actual.c !== 'SC' && actual.c !== 'PV' ? l.filter((m) => !m.nota && !m.dato && !m.pdfs.length) : [];
     if (propJ && propJ.k !== clave) propJ = null;
     const htmlPJ = !sinJust.length && !propJ ? '' : propJ ? htmlPropJ() : `<div class="pj-ban"><div><b>${sinJust.length} ${sinJust.length === 1 ? 'entrada sin justificante' : 'entradas sin justificante'}</b><span>El programa busca en E: el documento de cada una y te lo propone. Tú solo validas.</span></div><button class="bs prim" id="bPJ">Buscar justificantes automáticamente</button></div>`;
-    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadores(l) + htmlBiblio() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
+    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadores(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
     const bN = $('#bNE'); if (bN) bN.onclick = async () => { const r = await op('nuevo', { cod: actual.vista ? actual.cm : actual.c }, 'Entrada añadida.'); if (r) { const e = $(`.merito[data-id="${r.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); const c = $('.val.ed', e); if (c) c.click(); } } };
     $$('[data-ir]', caja).forEach((t) => { t.onclick = () => { const e = $(`.merito[data-id="${t.dataset.ir}"]`); if (e) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bQ = $('#bQA'); if (bQ) bQ.onclick = () => { quitando = !quitando; pintarLista(); };
@@ -706,6 +708,7 @@
     $$('[data-tfe]', caja).forEach((b) => { b.onclick = () => { const g = $(`#tfe-${b.dataset.tfe}`, caja); if (g) g.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bCS = $('#bClasSC'); if (bCS) bCS.onclick = () => irClasificar('sueltos');
     ligarPropJ(caja, sinJust, clave);
+    $$('[data-irart]', caja).forEach((b) => { b.onclick = () => { const id = b.dataset.irart; irA('v:articulos'); setTimeout(() => { const e = $(`[data-id="${id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); e.classList.add('destaca'); setTimeout(() => e.classList.remove('destaca'), 2200); } }, 120); }; });
     if (actual.c === 'SC' && trabajo) pintarDocs();
   }
   // ---------- Línea temporal arriba del apartado: se construye con las fechas de cada mérito ----------
@@ -739,6 +742,89 @@
     return /tesis/i.test(t) ? 'TD' : /m[áa]ster/i.test(t) ? 'TM' : /grado/i.test(t) ? 'TG' : 'X';
   };
   const resumenTFE = (l) => TIPOS_TFE.map(([k, , c]) => [l.filter((m) => tipoTFE(m) === k).length, c]).filter(([n, c]) => n && (c !== 'sin tipo' || trabajo)).map(([n, c]) => `${n} ${c}`).join(' · ');
+  // ---------- Internacionalización (v0.17): panel calculado con OpenAlex y con los méritos ----------
+  const PAISES = { CR: 'Costa Rica', PT: 'Portugal', BR: 'Brasil', CO: 'Colombia', CL: 'Chile', EC: 'Ecuador', US: 'Estados Unidos', IT: 'Italia', AU: 'Australia', TR: 'Turquía', GB: 'Reino Unido', AR: 'Argentina', PL: 'Polonia', RO: 'Rumanía', NO: 'Noruega', MX: 'México', FR: 'Francia', AD: 'Andorra', AT: 'Austria', PE: 'Perú', NI: 'Nicaragua', MY: 'Malasia', DE: 'Alemania', NL: 'Países Bajos', CH: 'Suiza', CA: 'Canadá', VE: 'Venezuela', UY: 'Uruguay', CN: 'China', JP: 'Japón' };
+  const PAIS_RE = { CR: /costa\s*rica|heredia|san ram[oó]n/i, PT: /portugal|lisboa|oporto|\bporto\b|castelo branco|tr[aá]s[- ]os[- ]montes|portuguesa/i, BR: /brasil|brazil|pernambuco|para[ií]ba|florian[oó]polis|jo[aã]o pessoa|santa catarina/i, CO: /colombia|bogot[aá]|antioquia/i, CL: /\bchile\b/i, EC: /ecuador/i, US: /estados unidos|\busa\b|ee\.?\s*uu|acsm annual/i, IT: /italia|bolonia|bologna|sinut/i, PE: /per[uú]\b|los andes \(per/i, MX: /m[eé]xico/i, AR: /argentina|buenos aires/i, MY: /malasia|malaysia|terengganu/i, GB: /reino unido|united kingdom/i, FR: /francia|france/i, PL: /polonia|poland/i };
+  const INT_V = { estancias: 'Estancias', estancias_t: 'Estancias de transferencia', plenarias: 'Ponencias plenarias', ponencias: 'Ponencias invitadas', comunicaciones: 'Comunicaciones', jornadas: 'Jornadas y seminarios', trib_tesis: 'Tribunales de tesis', tesis: 'Tesis dirigidas', proyectos: 'Proyectos de I+D+i', redes: 'Redes', cursos_inv: 'Cursos impartidos', comite_cientifico: 'Comité científico', comite_organizador: 'Comité organizador', dir_congresos: 'Dirección de congresos', evaluacion: 'Evaluación', ayudas: 'Ayudas y becas', creacion: 'Creación de titulación' };
+  let interAbierto = null;
+  function datosInternacional() {
+    const B = BIB(), obras = (B && B.obras) || [];
+    const coaut = {}; let conPais = 0, inter = 0;
+    obras.forEach((o) => { const p = new Set(o.paises || []); if (p.size) conPais++; if ([...p].some((x) => x !== 'ES')) inter++; p.forEach((x) => { if (x !== 'ES') coaut[x] = (coaut[x] || 0) + 1; }); });
+    const art = obras.filter((o) => /article|review/.test(o.tipo)), ai = art.filter((o) => (o.paises || []).some((x) => x !== 'ES')), an = art.filter((o) => !ai.includes(o));
+    const media = (l) => (l.length ? l.reduce((t, o) => t + (o.citas || 0), 0) / l.length : 0);
+    const mer = {};
+    P.datos.meritos.forEach((m) => {
+      if (!INT_V[m.vista] || !(trabajo || publico(m))) return;
+      const t = m.t + ' ' + m.filas.flat().map((p) => p.v).join(' ');
+      for (const [k, re] of Object.entries(PAIS_RE)) if (re.test(t)) (mer[k] = mer[k] || []).push(m);
+    });
+    const paises = [...new Set([...Object.keys(coaut), ...Object.keys(mer)])].sort((a, b) => ((mer[b] || []).length * 3 + (coaut[b] || 0)) - ((mer[a] || []).length * 3 + (coaut[a] || 0)));
+    return { obras: obras.length, conPais, inter, coaut, mer, paises, citasInt: media(ai), citasNac: media(an) };
+  }
+  function htmlInternacional() {
+    const D = datosInternacional();
+    const cuenta = (v) => new Set(Object.values(D.mer).flat().filter((m) => m.vista === v).map((m) => m.id)).size;
+    const pctTot = D.obras ? Math.round((D.inter / D.obras) * 100) : 0, pctPais = D.conPais ? Math.round((D.inter / D.conPais) * 100) : 0;
+    const caja = (n, t, s) => (n ? `<div class="rl-k"><b>${n}</b><span>${t}</span>${s ? `<small>${s}</small>` : ''}</div>` : '');
+    const ks = `<div class="rl-ks">${caja(D.paises.length, 'países con colaboración', 'coautoría o actividad')}${caja(fnum(D.inter), 'trabajos con coautores de otros países', `${pctTot} % del total · ${pctPais} % de los que tienen país`)}${D.citasInt ? caja(fnum(D.citasInt, 1), 'citas medias de esos artículos', `frente a ${fnum(D.citasNac, 1)} de los demás`) : ''}${caja(cuenta('estancias') + cuenta('estancias_t'), 'estancias en el extranjero')}${caja(cuenta('trib_tesis'), 'tribunales de tesis internacionales')}${caja(cuenta('tesis'), 'tesis dirigidas en el extranjero')}${caja(cuenta('plenarias') + cuenta('ponencias'), 'ponencias en el extranjero')}${caja(cuenta('proyectos') + cuenta('redes'), 'proyectos y redes con socios extranjeros')}</div>`;
+    const max = Math.max(1, ...D.paises.map((k) => (D.coaut[k] || 0))), maxM = Math.max(1, ...D.paises.map((k) => (D.mer[k] || []).length));
+    const filas = D.paises.map((k) => {
+      const c = D.coaut[k] || 0, l = D.mer[k] || [], abierto = interAbierto === k;
+      const porV = {}; l.forEach((m) => { (porV[m.vista] = porV[m.vista] || []).push(m); });
+      const det = abierto ? `<div class="int-det">${Object.entries(porV).map(([v, ms]) => `<div class="int-g"><b>${esc(INT_V[v])}</b>${ms.map((m) => `<button class="tr-m" data-cod="v:${esc(v)}" data-id="${m.id}">${esc((m.anio ? m.anio + ' · ' : '') + m.t.slice(0, 140))}</button>`).join('')}</div>`).join('') || '<p class="cuenta">Solo coautorías en artículos.</p>'}</div>` : '';
+      return `<div class="int-f ${abierto ? 'on' : ''}"><button class="int-p" data-pais="${k}"><span class="int-n">${esc(PAISES[k] || k)}</span><span class="int-b"><i style="width:${(c / max) * 100}%"></i></span><span class="int-c">${c ? `${c} ${c === 1 ? 'trabajo' : 'trabajos'}` : ''}</span><span class="int-b m"><i style="width:${(l.length / maxM) * 100}%"></i></span><span class="int-c">${l.length ? `${l.length} ${l.length === 1 ? 'mérito' : 'méritos'}` : ''}</span></button>${det}</div>`;
+    }).join('');
+    return `<div class="rl">${ks}<p class="rl-f">Coautoría: OpenAlex (países de las instituciones de los coautores). Méritos: estancias, ponencias, tribunales, tesis, proyectos y redes que mencionan el país.</p></div>
+      <section class="int"><div class="int-cab"><span>País</span><span>Coautorías (trabajos)</span><span></span><span>Méritos en el expediente</span><span></span></div>${filas}<p class="cuenta">Pulsa un país para ver sus méritos; pulsa un mérito para ir a su ficha.</p></section>`;
+  }
+  function ligarInternacional(caja) {
+    $$('[data-pais]', caja).forEach((b) => { b.onclick = () => { interAbierto = interAbierto === b.dataset.pais ? null : b.dataset.pais; pintarLista(); }; });
+    $$('.int .tr-m', caja).forEach((b) => { b.onclick = () => { irA(b.dataset.cod); setTimeout(() => { const e = $(`[data-id="${b.dataset.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); e.classList.add('destaca'); setTimeout(() => e.classList.remove('destaca'), 2200); } }, 120); }; });
+  }
+  // ---------- Liderazgo (v0.17): resumen arriba de «Grupos de investigación», calculado con lo que ya hay ----------
+  function htmlLiderazgo() {
+    const vis = (v) => P.datos.meritos.filter((m) => m.vista === v && (trabajo || publico(m)));
+    const txt = (m) => m.t + ' ' + m.filas.flat().map((p) => p.e + ' ' + p.v).join(' ');
+    const ipGrupo = vis('grupos').filter((m) => /investigador principal|\(IP\)|responsable/i.test(txt(m))).length;
+    const coordGid = vis('gid').filter((m) => /coordinador/i.test(txt(m)) && !/ayuda/i.test(m.t)).length;
+    const ipProy = [...vis('proyectos'), ...vis('contratos')].filter((m) => { const c = {}; m.filas.flat().forEach((p) => { c[p.e] = c[p.e] || p.v; }); return /principal|coordinador|responsable/i.test(c['Grado de contribución'] || '') || /pino/i.test(c['Nombres investigadores principales (IP, Co-IP,...)'] || ''); }).length;
+    const tesis = vis('tesis').length, dir = vis('dir_congresos').length;
+    const editor = vis('editor').filter((m) => /associate|guest|topic/i.test(txt(m))).length;
+    const caja = (n, t) => (n ? `<div class="rl-k"><b>${n}</b><span>${t}</span></div>` : '');
+    return `<div class="rl"><div class="rl-ks">${caja(ipGrupo, ipGrupo === 1 ? 'grupo de investigación como IP' : 'grupos de investigación como IP')}${caja(coordGid, 'grupo de innovación docente como coordinador')}${caja(ipProy, 'proyectos y contratos como IP o responsable')}${caja(tesis, 'tesis doctorales dirigidas')}${caja(dir, 'congresos dirigidos')}${caja(editor, 'cargos de editor en revistas')}</div><p class="rl-f">Resumen de liderazgo científico: se calcula con las entradas de cada apartado.</p></div>`;
+  }
+  // ---------- Dirección de tesis (v0.17): resumen, etiquetas y trabajos científicos derivados ----------
+  const TESIS_V = new Set(['tesis', 'tesis_curso']);
+  const derivadosDe = (m) => (m.derivados || []).map((id) => buscar(id)).filter(Boolean).filter((a) => trabajo || publico(a));
+  function htmlResumenTesis(l) {
+    const vis = l.filter((m) => trabajo || publico(m));
+    const der = [...new Map(vis.flatMap(derivadosDe).map((a) => [a.id, a])).values()];
+    const q1 = der.filter((a) => cuartilDe(a).c === 'Q1').length, q12 = der.filter((a) => /Q[12]/.test(cuartilDe(a).c)).length;
+    const citas = der.reduce((t, a) => t + ((obraDe(a) || {}).citas || 0), 0);
+    const et = (e) => vis.filter((m) => (m.etiquetas || []).includes(e)).length;
+    const anios = vis.map((m) => +m.anio).filter(Boolean);
+    const caja = (n, t, s) => `<div class="rl-k"><b>${n}</b><span>${t}</span>${s ? `<small>${s}</small>` : ''}</div>`;
+    const cum = et('Sobresaliente cum laude'), men = et('Mención de calidad') + et('Mención internacional');
+    const rango = anios.length ? `${Math.min(...anios)}–${Math.max(...anios)}` : '';
+    return `<div class="rl"><div class="rl-ks">${caja(vis.length, actual.vista === 'tesis' ? 'tesis dirigidas' : 'tesis en dirección', rango)}${cum ? caja(cum, 'sobresaliente cum laude') : ''}${men ? caja(men, 'con mención') : ''}${caja(der.length, 'artículos derivados', `${q1} en Q1 · ${q12} en Q1–Q2`)}${citas ? caja(fnum(citas), 'citas de esos artículos', 'OpenAlex') : ''}</div><p class="rl-f">Los artículos derivados son los publicados a partir de cada tesis; pulsa uno para ir a su ficha en Artículos.</p></div>`;
+  }
+  function htmlTesisExtra(m) {
+    if (!actual || !TESIS_V.has(actual.vista)) return '';
+    const et = (m.etiquetas || []).map((e) => `<span class="pch tes-et">${esc(e)}</span>`).join('');
+    const der = derivadosDe(m);
+    const li = der.map((a) => {
+      const Q = cuartilDe(a), o = obraDe(a);
+      const tit = (o && o.titulo) || (a.filas.flat().find((p) => /^t[ií]tulo/i.test(p.e)) || {}).v || a.t;
+      const meta = [(o && o.revista) || Q.rev || '', a.anio || ''].filter(Boolean).map(esc).join(' · ');
+      const q = /^Q/.test(Q.c) ? ` · <b style="color:${colorCu(Q.c)}">${Q.c}</b>` : '';
+      const ci = o ? ` · ${fnum(o.citas)} citas` : '';
+      return `<li><button class="tes-a" data-irart="${a.id}">${esc(String(tit).slice(0, 160))}</button><span class="tes-m">${meta}${q}${ci}</span></li>`;
+    }).join('');
+    const titulo = `Trabajos científicos derivados${der.length ? ` (${der.length})` : ''}`;
+    const blq = m.derivados ? `<div class="tes-d"><b>${titulo}</b>${der.length ? `<ol>${li}</ol>` : '<p>No consta ningún artículo publicado a partir de esta tesis.</p>'}</div>` : '';
+    return (et ? `<div class="pcs">${et}</div>` : '') + blq;
+  }
   // ---------- Indicadores de calidad (v0.17): índice h en cada base de datos ----------
   function htmlIndicadores(l) {
     const B = BIB();

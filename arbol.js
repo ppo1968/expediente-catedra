@@ -82,10 +82,11 @@
     gid: { cod: '5.1', nom: 'Grupo de innovación docente' },
     grupos: { cod: '5.1', nom: 'Grupos de investigación' }, proyectos: { cod: '5.2', nom: 'Proyectos de I+D+i' },
     articulos: { cod: '6.2', nom: 'Artículos' }, libros: { cod: '6.2', nom: 'Libros y capítulos' }, indicadores: { cod: '6.1', nom: 'Indicadores de calidad y rankings' },
-    comunicaciones: { cod: '6.3', nom: 'Comunicaciones en congresos' }, ponencias: { cod: '6.3', nom: 'Ponencias invitadas y plenarias' }, virtuales: { cod: '6.3', nom: 'Conferencias virtuales' }, jornadas: { cod: '6.4', nom: 'Jornadas y seminarios' },
+    comunicaciones: { cod: '6.3', nom: 'Comunicaciones' }, ponencias: { cod: '6.3', nom: 'Ponencias invitadas' },
+    dir_congresos: { cod: '6.6', nom: 'Dirección de congresos' }, comite_cientifico: { cod: '6.6', nom: 'Comité científico' }, comite_organizador: { cod: '6.6', nom: 'Comité organizador' }, plenarias: { cod: '6.3', nom: 'Ponencias plenarias' }, asistencia: { cod: '6.13', nom: 'Asistencia a congresos' }, virtuales: { cod: '6.3', nom: 'Conferencias virtuales' }, jornadas: { cod: '6.4', nom: 'Jornadas y seminarios' },
     cursos_inv: { cod: '4.4', nom: 'Cursos impartidos' }, master: { cod: '4.4', nom: 'Participación en másteres' }, erasmus: { cod: '4.3', nom: 'Tutorías Erasmus' },
-    tesis: { cod: '4.2', nom: 'Tesis doctorales dirigidas' },
-    editor: { cod: '6.6', nom: 'Editor y revisor de revistas' }, comites: { cod: '6.6', nom: 'Comités de congresos' }, evaluacion: { cod: '5.4', nom: 'Evaluación y consultoría' },
+    tesis: { cod: '4.2', nom: 'Tesis dirigidas' }, tesis_curso: { cod: '4.2', nom: 'Tesis en dirección' },
+    editor: { cod: '6.6', nom: 'Editor de revistas' }, revisor: { cod: '6.6', nom: 'Revisor de revistas' }, redes: { cod: '5.1', nom: 'Redes de investigación' }, internacional: { cod: '6.13', nom: 'Internacionalización' }, formacion_inv: { cod: '4.2', nom: 'Formación de investigadores' }, comites: { cod: '6.6', nom: 'Comités de congresos' }, evaluacion: { cod: '5.4', nom: 'Evaluación y consultoría' },
     trib_tesis: { cod: '6.13', nom: 'Tribunales de tesis' }, trib_plazas: { cod: '6.13', nom: 'Tribunales de plazas' },
     estancias: { cod: '6.8', nom: 'Estancias' }, ayudas: { cod: '6.9', nom: 'Ayudas y becas' }, sexenios: { cod: '6.11', nom: 'Sexenios y quinquenios' },
     sinubicar: { cod: '6.13', nom: 'Sin ubicar', trabajo: true },
@@ -103,7 +104,7 @@
   const H = (t) => ['', t, 'h'];
   ARBOL.menuV17 = {
     Docencia: [['4.1', 'Formación académica impartida'], H('Trabajos fin de estudios'), ...V('tfg', 'tfm', 'trib_tfg'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ...V('libros_doc'), ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
-    Investigación: [...V('indicadores'), H('Grupos y proyectos'), ...V('grupos', 'proyectos'), H('Producción científica'), ...V('articulos', 'libros_editor', 'libros_autor', 'capitulos', 'capitulos_actas'), H('Congresos y jornadas'), ...V('comunicaciones', 'ponencias', 'virtuales', 'jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Dirección de tesis'), ...V('tesis'), H('Evaluación, comités y tribunales'), ...V('editor', 'comites', 'evaluacion', 'trib_tesis', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
+    Investigación: [...V('indicadores', 'internacional'), H('Dirección de tesis doctorales'), ...V('tesis', 'tesis_curso', 'formacion_inv', 'trib_tesis'), H('Producción científica'), ...V('articulos', 'libros_editor', 'libros_autor', 'capitulos', 'capitulos_actas'), H('Labor editorial'), ...V('editor', 'revisor'), H('Grupos y proyectos'), ...V('grupos', 'proyectos', 'redes'), H('Congresos'), ...V('dir_congresos', 'comite_cientifico', 'comite_organizador', 'plenarias', 'ponencias', 'comunicaciones', 'asistencia'), H('Jornadas y seminarios'), ...V('jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Evaluación, comités y tribunales'), ...V('evaluacion', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
     Transferencia: V('contratos', 'sexenio_t', 'software', 'asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'libros_transf', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision'),
     'Otros méritos': V('gestion', 'tit_deportivas', 'acreditaciones', 'premios', 'colef', 'padrino'),
   };
