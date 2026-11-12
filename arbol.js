@@ -95,7 +95,7 @@
     eventos: { cod: '6.6', nom: 'Organización de eventos' }, reconocimientos: { cod: '5.4', nom: 'Reconocimientos' }, revision: { cod: '6.6', nom: 'Revisión de libros' },
     gestion: { cod: '2.2', nom: 'Gestión universitaria' }, acreditaciones: { cod: '6.12', nom: 'Acreditaciones' }, premios: { cod: '6.10', nom: 'Premios y distinciones' },
     colef: { cod: '6.13', nom: 'Colegiación (COLEF)' }, padrino: { cod: '6.13', nom: 'Padrino de promoción' },
-    tit_deportivas: { cod: '3.3', nom: 'Titulaciones deportivas' }, cursos_transf: { cod: '3.4', nom: 'Cursos orientados a la transferencia' },
+    tit_deportivas: { cod: '3.3', nom: 'Titulaciones deportivas' }, cursos_transf: { cod: '3.4', nom: 'Cursos orientados a la transferencia' }, otros_cursos: { cod: '3.5', nom: 'Otros cursos recibidos' },
   };
   const V = (...ids) => ids.map((i) => ['v:' + i, ARBOL.vistas[i].nom]);
   const H = (t) => ['', t, 'h'];

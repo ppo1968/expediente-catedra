@@ -257,7 +257,7 @@
   // Tabla del principio de «Cargos y actividades», igual que en el CVN. Sale de las propias entradas.
   function htmlTabla(l) {
     const val = (m, ...et) => { for (const e of et) { const p = m.filas.flat().find((x) => x.e === e); if (p) return p.v; } return ''; };
-    return `<table class="tcv"><thead><tr><th></th><th>Entidad empleadora</th><th>Categoría profesional</th><th>Fecha de inicio</th></tr></thead><tbody>${l.map((m) => `<tr data-ir="${m.id}"><td>${m.n || ''}</td><td>${esc(val(m, 'Entidad empleadora'))}</td><td>${esc(val(m, 'Categoría profesional'))}</td><td>${esc((val(m, 'Fecha de inicio', 'Fecha de inicio-fin').match(/\d\d\/\d\d\/\d{4}/) || [''])[0])}</td></tr>`).join('')}</tbody></table>`;
+    return `<table class="tcv"><thead><tr><th></th><th>Entidad empleadora</th><th>Categoría profesional</th><th>Fecha de inicio</th></tr></thead><tbody>${l.map((m) => `<tr data-ir="${m.id}"><td>${(repartido() ? l.indexOf(m) + 1 : m.n) || ''}</td><td>${esc(val(m, 'Entidad empleadora'))}</td><td>${esc(val(m, 'Categoría profesional'))}</td><td>${esc((val(m, 'Fecha de inicio', 'Fecha de inicio-fin').match(/\d\d\/\d\d\/\d{4}/) || [''])[0])}</td></tr>`).join('')}</tbody></table>`;
   }
   // ---------- Identificación ----------
   const nombrePersona = () => {
@@ -782,7 +782,9 @@
   }
   let numVista = null; // numeración propia dentro de cada bloque
   // En una opción del menú (v0.17) las entradas se numeran 1, 2, 3… dentro de esa opción.
-  const conNumVista = (l, pintar) => { if (!actual || !actual.vista) return pintar(); numVista = new Map(l.map((m, i) => [m.id, i + 1])); try { return pintar(); } finally { numVista = null; } };
+  // v0.17: también cuando el apartado del CVN está repartido en varias opciones del menú (cada opción numera desde 1).
+  const repartido = () => actual && !actual.vista && !actual.cvn && P.datos.meritos.some((m) => m.cod === actual.c && m.vista);
+  const conNumVista = (l, pintar) => { if (!actual || (!actual.vista && !repartido())) return pintar(); numVista = new Map(l.map((m, i) => [m.id, i + 1])); try { return pintar(); } finally { numVista = null; } };
   function htmlGruposTFE(l) {
     const grupos = TIPOS_TFE.map(([k, nom]) => [k, k === 'X' && !trabajo ? 'Otros trabajos dirigidos' : nom, l.filter((m) => tipoTFE(m) === k)]).filter(([, , v]) => v.length);
     numVista = new Map(grupos.flatMap(([, , v]) => v.map((m, i) => [m.id, i + 1])));
