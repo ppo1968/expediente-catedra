@@ -691,7 +691,7 @@
     const clave = actual.cm || actual.c, sinJust = trabajo && actual.c !== 'SC' && actual.c !== 'PV' ? l.filter((m) => !m.nota && !m.dato && !m.pdfs.length) : [];
     if (propJ && propJ.k !== clave) propJ = null;
     const htmlPJ = !sinJust.length && !propJ ? '' : propJ ? htmlPropJ() : `<div class="pj-ban"><div><b>${sinJust.length} ${sinJust.length === 1 ? 'entrada sin justificante' : 'entradas sin justificante'}</b><span>El programa busca en E: el documento de cada una y te lo propone. Tú solo validas.</span></div><button class="bs prim" id="bPJ">Buscar justificantes automáticamente</button></div>`;
-    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadoresCalidad(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + (actual.vista === 'software' ? htmlDesarrollo() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
+    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadoresCalidad(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + (actual.vista === 'software' ? htmlDesarrollo() : '') + (actual.vista === 'catedras' ? htmlCatedra() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
     const bN = $('#bNE'); if (bN) bN.onclick = async () => { const r = await op('nuevo', { cod: actual.vista ? actual.cm : actual.c }, 'Entrada añadida.'); if (r) { const e = $(`.merito[data-id="${r.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); const c = $('.val.ed', e); if (c) c.click(); } } };
     $$('[data-ir]', caja).forEach((t) => { t.onclick = () => { const e = $(`.merito[data-id="${t.dataset.ir}"]`); if (e) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bQ = $('#bQA'); if (bQ) bQ.onclick = () => { quitando = !quitando; pintarLista(); };
@@ -709,6 +709,7 @@
     const bCS = $('#bClasSC'); if (bCS) bCS.onclick = () => irClasificar('sueltos');
     ligarPropJ(caja, sinJust, clave);
     if (actual.vista === 'software') ligarDesarrollo(caja);
+    if (actual.vista === 'catedras') ligarCatedra(caja);
     $$('[data-irrel]', caja).forEach((b) => { b.onclick = () => { const m = P.datos.meritos.find((x) => String(x.id) === b.dataset.irrel); if (!m) return; const c = m.vista ? 'v:' + m.vista : m.cod; if (c !== actual.c) { irA(c); setTimeout(() => irMerito(String(m.id)), 150); } else irMerito(String(m.id)); }; });
     $$('[data-irart]', caja).forEach((b) => { b.onclick = () => { const id = b.dataset.irart; irA('v:articulos'); setTimeout(() => { const e = $(`[data-id="${id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); e.classList.add('destaca'); setTimeout(() => e.classList.remove('destaca'), 2200); } }, 120); }; });
     if (actual.c === 'SC' && trabajo) pintarDocs();
@@ -857,6 +858,45 @@
     $$('.dt-pn', sec).forEach((g) => { g.onmouseenter = () => verP(+g.dataset.k); g.onmouseleave = fuera; g.onclick = () => { const m = D.prods[+g.dataset.k].m; if (m.vista !== actual.vista) { irA('v:' + m.vista); setTimeout(() => irMerito(String(m.id)), 150); } else irMerito(String(m.id)); }; });
     // Las cifras cuentan desde cero al entrar.
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) $$('[data-n]', sec).forEach((e) => { const n = +e.dataset.n, t0 = performance.now(); const paso = (t) => { const q = Math.min(1, (t - t0) / 1400); e.textContent = fnum(Math.round(n * (1 - Math.pow(1 - q, 3)))); if (q < 1) requestAnimationFrame(paso); }; requestAnimationFrame(paso); });
+  }
+
+  // ---------- Cátedra (v0.17): línea de tiempo de sus actividades (m.hitos en la ficha de la cátedra) ----------
+  const CAT_COL = { Institucional: '#0D2A33', Divulgación: '#378ADD', Formación: '#1D9E75', Reconocimiento: '#D4537E', 'Desarrollo tecnológico': '#BD2A33', Investigación: '#EF9F27', Evento: '#7F77DD' };
+  const MESES = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+  function htmlCatedra() {
+    const cat = P.datos.meritos.find((m) => m.vista === 'catedras' && m.hitos && (trabajo || publico(m)));
+    if (!cat) return '';
+    const hs = cat.hitos.map((h) => ({ ...h, m: P.datos.meritos.find((x) => x.id === h.id) })).filter((h) => h.m && (trabajo || publico(h.m))).sort((a, b) => a.f.localeCompare(b.f));
+    if (!hs.length) return '';
+    const fecha = (f) => { const [a, m, d] = f.split('-'); return d ? `${+d} ${MESES[+m - 1]} ${a}` : m ? `${MESES[+m - 1]} ${a}` : a; };
+    const mes = (f) => { const [a, m] = f.split('-'); return +a * 12 + (m ? +m - 1 : 6) + (f.split('-')[2] ? (+f.split('-')[2] - 1) / 31 : 0.5); };
+    const m0 = Math.floor(mes(hs[0].f)), m1 = Math.ceil(mes(hs[hs.length - 1].f)) + 1, X = (f) => 30 + ((mes(f) - m0) / (m1 - m0)) * 620;
+    const tipos = [...new Set(hs.map((h) => h.tipo))];
+    let eje = `<line x1="30" y1="40" x2="650" y2="40" stroke="#c9c6bd" stroke-width="2"/>`;
+    for (let k = m0; k <= m1; k++) { const x = 30 + ((k - m0) / (m1 - m0)) * 620; if (k % 12 === 0) eje += `<line x1="${x}" y1="30" x2="${x}" y2="50" stroke="#9aa5a8"/><text x="${x}" y="68" class="ct-a">${k / 12}</text>`; else if ((k % 12) % 3 === 0) eje += `<text x="${x}" y="68" class="ct-m">${MESES[k % 12]}</text>`; }
+    const puntos = hs.map((h, i) => `<circle class="ct-p" data-i="${i}" cx="${X(h.f).toFixed(1)}" cy="40" r="8" fill="${CAT_COL[h.tipo] || '#888'}" stroke="#fff" stroke-width="2.5" style="animation-delay:${(0.15 + i * 0.12).toFixed(2)}s"/>`).join('');
+    const tarjetas = hs.map((h, i) => `<button class="ct-c" data-i="${i}" style="--c:${CAT_COL[h.tipo] || '#888'};animation-delay:${(0.3 + i * 0.1).toFixed(2)}s"><small>${esc(fecha(h.f))} · ${esc(h.tipo)}</small><b>${esc(h.txt)}</b><em>${esc(nombreDe('v:' + h.m.vista))}</em></button>`).join('');
+    const cuenta = (t) => hs.filter((h) => h.tipo === t).length;
+    const B = BIB(), art = B ? (B.obras || []).filter((o) => /cancer|oncolog|breast/i.test(o.titulo || '')).length : 0;
+    const k = (n, t) => (n ? `<div class="dt-k"><b>${n}</b><span>${t}</span></div>` : '');
+    return `<section class="dt ct">
+      <p class="ct-sup">Cátedra universitaria · Universidad de Murcia</p>
+      <h2 class="ct-h">Cátedra Ejercicio, Educación y Cáncer</h2>
+      <p class="dt-txt">Codirector desde su creación (convenio de 21 de enero de 2025 con la Asociación de Ayuda a Mujeres con Cáncer de Mama y seis empresas). La Cátedra une investigación, formación y divulgación sobre el ejercicio físico en la prevención y el tratamiento del cáncer.</p>
+      <div class="dt-ks">${k(hs.length - 1, 'actividades de la Cátedra')}${k(cuenta('Reconocimiento'), cuenta('Reconocimiento') === 1 ? 'reconocimiento' : 'reconocimientos')}${k(cuenta('Desarrollo tecnológico'), 'herramientas desarrolladas')}${k(art, 'trabajos científicos sobre ejercicio y cáncer')}</div>
+      <svg class="ct-sv" viewBox="0 0 680 80" role="img" aria-label="Línea de tiempo de la Cátedra">${eje}${puntos}</svg>
+      <div class="ct-ley">${tipos.map((t) => `<span><i style="background:${CAT_COL[t] || '#888'}"></i>${esc(t)}</span>`).join('')}</div>
+      <div class="ct-g">${tarjetas}</div>
+      <p class="cuenta">Pulsa una actividad para ir a su ficha.</p>
+    </section>`;
+  }
+  function ligarCatedra(caja) {
+    const sec = $('.ct', caja); if (!sec) return;
+    const cat = P.datos.meritos.find((m) => m.vista === 'catedras' && m.hitos);
+    const hs = cat.hitos.map((h) => ({ ...h, m: P.datos.meritos.find((x) => x.id === h.id) })).filter((h) => h.m && (trabajo || publico(h.m))).sort((a, b) => a.f.localeCompare(b.f));
+    const marca = (i) => { $$('[data-i]', sec).forEach((e) => e.classList.toggle('on', i >= 0 && +e.dataset.i === i)); };
+    const ir = (i) => { const m = hs[i].m, c = 'v:' + m.vista; if (c !== actual.c) { irA(c); setTimeout(() => irMerito(String(m.id)), 150); } else irMerito(String(m.id)); };
+    $$('[data-i]', sec).forEach((e) => { e.onmouseenter = () => marca(+e.dataset.i); e.onmouseleave = () => marca(-1); e.onclick = () => ir(+e.dataset.i); });
   }
 
   // ---------- Liderazgo (v0.17): resumen arriba de «Grupos de investigación», calculado con lo que ya hay ----------
