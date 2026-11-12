@@ -52,7 +52,7 @@
     ] },
     { gr: 'Complementos', fuera: true, aps: [
       ['C.0', 'Méritos que no están en el CVN', 'C.0_No_estan_en_CVN'], ['C.1', 'Reconocimientos', 'C.1_Reconocimientos'], ['C.2', 'Aportaciones más relevantes', 'C.2_Aportaciones_relevantes'],
-      ['C.3', 'Producción científica comentada', 'C.3_Produccion_comentada'], ['C.4', 'Software y datos', 'C.4_Software_y_datos'], ['C.5', 'Informe bibliométrico', 'C.5_Informe_bibliometrico'], ['C.6', 'Anexos', 'C.6_Anexos'],
+      ['C.3', 'Producción científica comentada', 'C.3_Produccion_comentada'], ['C.5', 'Informe bibliométrico', 'C.5_Informe_bibliometrico'], ['C.6', 'Anexos', 'C.6_Anexos'],
     ].map(([cod, nom, dir]) => ({ cod, nom, dir: `03_Complementos/${dir}` })) },
   ];
   // Menú inicial: se deduce del árbol, con los epígrafes intermedios como títulos no pulsables.
@@ -90,7 +90,7 @@
     trib_tesis: { cod: '6.13', nom: 'Tribunales de tesis' }, trib_plazas: { cod: '6.13', nom: 'Tribunales de plazas' },
     estancias: { cod: '6.8', nom: 'Estancias' }, ayudas: { cod: '6.9', nom: 'Ayudas y becas' }, sexenios: { cod: '6.11', nom: 'Sexenios y quinquenios' },
     sinubicar: { cod: '6.13', nom: 'Sin ubicar', trabajo: true },
-    contratos: { cod: '5.3', nom: 'Contratos art. 83 y 60' }, sexenio_t: { cod: '6.11', nom: 'Sexenio de transferencia' }, software: { cod: '5.4', nom: 'Software y datos' },
+    contratos: { cod: '5.3', nom: 'Contratos art. 83 y 60' }, sexenio_t: { cod: '6.11', nom: 'Sexenio de transferencia' }, software: { cod: '5.4', nom: 'Software científico' }, datos_abiertos: { cod: '5.4', nom: 'Datos abiertos' }, apps_moviles: { cod: '5.4', nom: 'Aplicaciones para dispositivos móviles' },
     asesoramiento: { cod: '5.4', nom: 'Asesoramiento' }, catedras: { cod: '5.4', nom: 'Cátedras' }, creacion: { cod: '5.4', nom: 'Creación de grupo, sociedad y titulación' },
     formacion_emp: { cod: '5.4', nom: 'Formación y ponencias para empresas' }, divulgacion: { cod: '6.5', nom: 'Divulgación' }, estancias_t: { cod: '6.8', nom: 'Estancias de transferencia' },
     eventos: { cod: '6.6', nom: 'Organización de eventos' }, reconocimientos: { cod: '5.4', nom: 'Reconocimientos' }, revision: { cod: '6.6', nom: 'Revisión de libros' },
@@ -105,7 +105,7 @@
   ARBOL.menuV17 = {
     Docencia: [['4.1', 'Formación académica impartida'], H('Trabajos fin de estudios'), ...V('tfg', 'tfm', 'trib_tfg'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ...V('libros_doc'), ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
     Investigación: [...V('indicadores', 'internacional'), H('Dirección de tesis doctorales'), ...V('tesis', 'tesis_curso', 'formacion_inv', 'trib_tesis'), H('Producción científica'), ...V('articulos', 'libros_editor', 'libros_autor', 'capitulos', 'capitulos_actas'), H('Labor editorial'), ...V('editor', 'revisor'), H('Grupos y proyectos'), ...V('grupos', 'proyectos', 'redes'), H('Congresos'), ...V('dir_congresos', 'comite_cientifico', 'comite_organizador', 'plenarias', 'ponencias', 'comunicaciones', 'asistencia'), H('Jornadas y seminarios'), ...V('jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Evaluación, comités y tribunales'), ...V('evaluacion', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
-    Transferencia: V('contratos', 'sexenio_t', 'software', 'asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'libros_transf', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision'),
+    Transferencia: [H('Desarrollo tecnológico'), ...V('software', 'datos_abiertos', 'apps_moviles'), H('Contratos y reconocimiento'), ...V('contratos', 'sexenio_t'), H('Otras actividades de transferencia'), ...V('asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'libros_transf', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision')],
     'Otros méritos': V('gestion', 'tit_deportivas', 'acreditaciones', 'premios', 'colef', 'padrino'),
   };
   // El menú inicial ya sale con la estructura de E:.

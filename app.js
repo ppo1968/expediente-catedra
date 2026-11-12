@@ -691,7 +691,7 @@
     const clave = actual.cm || actual.c, sinJust = trabajo && actual.c !== 'SC' && actual.c !== 'PV' ? l.filter((m) => !m.nota && !m.dato && !m.pdfs.length) : [];
     if (propJ && propJ.k !== clave) propJ = null;
     const htmlPJ = !sinJust.length && !propJ ? '' : propJ ? htmlPropJ() : `<div class="pj-ban"><div><b>${sinJust.length} ${sinJust.length === 1 ? 'entrada sin justificante' : 'entradas sin justificante'}</b><span>El programa busca en E: el documento de cada una y te lo propone. Tú solo validas.</span></div><button class="bs prim" id="bPJ">Buscar justificantes automáticamente</button></div>`;
-    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadores(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
+    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadoresCalidad(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + (actual.vista === 'software' ? htmlDesarrollo() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
     const bN = $('#bNE'); if (bN) bN.onclick = async () => { const r = await op('nuevo', { cod: actual.vista ? actual.cm : actual.c }, 'Entrada añadida.'); if (r) { const e = $(`.merito[data-id="${r.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); const c = $('.val.ed', e); if (c) c.click(); } } };
     $$('[data-ir]', caja).forEach((t) => { t.onclick = () => { const e = $(`.merito[data-id="${t.dataset.ir}"]`); if (e) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bQ = $('#bQA'); if (bQ) bQ.onclick = () => { quitando = !quitando; pintarLista(); };
@@ -708,6 +708,7 @@
     $$('[data-tfe]', caja).forEach((b) => { b.onclick = () => { const g = $(`#tfe-${b.dataset.tfe}`, caja); if (g) g.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bCS = $('#bClasSC'); if (bCS) bCS.onclick = () => irClasificar('sueltos');
     ligarPropJ(caja, sinJust, clave);
+    if (actual.vista === 'software') ligarDesarrollo(caja);
     $$('[data-irart]', caja).forEach((b) => { b.onclick = () => { const id = b.dataset.irart; irA('v:articulos'); setTimeout(() => { const e = $(`[data-id="${id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); e.classList.add('destaca'); setTimeout(() => e.classList.remove('destaca'), 2200); } }, 120); }; });
     if (actual.c === 'SC' && trabajo) pintarDocs();
   }
@@ -782,6 +783,81 @@
     $$('[data-pais]', caja).forEach((b) => { b.onclick = () => { interAbierto = interAbierto === b.dataset.pais ? null : b.dataset.pais; pintarLista(); }; });
     $$('.int .tr-m', caja).forEach((b) => { b.onclick = () => { irA(b.dataset.cod); setTimeout(() => { const e = $(`[data-id="${b.dataset.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); e.classList.add('destaca'); setTimeout(() => e.classList.remove('destaca'), 2200); } }, 120); }; });
   }
+  // ---------- Desarrollo tecnológico (v0.17): «Del conocimiento a la herramienta», arriba de «Software científico» ----------
+  // Líneas de investigación: se cuentan los trabajos de OpenAlex por palabras del título. Las herramientas salen de las fichas.
+  const DT_L = [
+    { n: 'Carga externa y tecnología inercial', re: /inertial|accelerom|gnss|gps|wimu|load|tracking|wearable|device|technolog/i, c: '#1D9E75' },
+    { n: 'Fútbol y rendimiento', re: /soccer|football|futsal/i, c: '#378ADD' },
+    { n: 'Arbitraje en rugby 7', re: /rugby|referee/i, c: '#7F77DD' },
+    { n: 'Carga interna y salud cardiovascular', re: /heart rate|hrv|blood pressure|cardiovascular|physiolog|internal load|lactate/i, c: '#D4537E' },
+    { n: 'Ejercicio y cáncer', re: /cancer|oncolog|breast/i, c: '#EF9F27' },
+  ];
+  const DT_V = ['software', 'datos_abiertos', 'apps_moviles'];
+  let dtDatos = null;
+  function datosDesarrollo() {
+    const B = BIB(), obras = (B && B.obras) || [];
+    const campo = (m, e) => { const p = m.filas.flat().find((x) => x.e === e); return p ? p.v : ''; };
+    const lineas = DT_L.map((l) => { const s = obras.filter((o) => l.re.test(o.titulo || '')); const ys = s.map((o) => +o.anio).filter(Boolean); return { ...l, t: s.length, d: ys.length ? Math.min(...ys) : null, p: [] }; });
+    const prods = [];
+    P.datos.meritos.filter((m) => DT_V.includes(m.vista) && (trabajo || publico(m))).forEach((m) => {
+      const ln = campo(m, 'Línea de investigación');
+      let i = lineas.findIndex((l) => l.n === ln);
+      if (i < 0) { lineas.push({ n: ln || 'Otras', re: null, c: '#888780', t: 0, d: null, p: [] }); i = lineas.length - 1; }
+      prods.push({ m, i, nom: m.t.replace(/^SportsLabResearch\s+/i, ''), doi: campo(m, 'DOI'), tipo: campo(m, 'Tipo'), ver: campo(m, 'Versión'), lic: campo(m, 'Licencia') });
+    });
+    prods.sort((a, b) => a.i - b.i);
+    prods.forEach((p, k) => lineas[p.i].p.push(k));
+    const L = lineas.filter((l) => l.p.length);
+    const porAnio = {}; obras.forEach((o) => { if (o.anio) porAnio[o.anio] = (porAnio[o.anio] || 0) + 1; });
+    const ys = Object.keys(porAnio).map(Number), a0 = ys.length ? Math.min(...ys) : new Date().getFullYear(), a1 = new Date().getFullYear();
+    return { L, prods, obras: obras.length, citas: obras.reduce((t, o) => t + (o.citas || 0), 0), a0, a1, porAnio, conDoi: prods.filter((p) => p.doi).length };
+  }
+  function htmlDesarrollo() {
+    const D = (dtDatos = datosDesarrollo());
+    if (!D.prods.length) return '';
+    const py = (k) => 30 + k * 33, ly = (l) => (py(l.p[0]) + py(l.p[l.p.length - 1])) / 2, H = py(D.prods.length - 1) + 30;
+    const corta = (t, n) => (t.length > n ? t.slice(0, n - 1) + '…' : t);
+    let flujos = '', lins = '', pros = '';
+    D.L.forEach((l, i) => {
+      const y1 = ly(l);
+      l.p.forEach((k) => { const y2 = py(k); flujos += `<path class="dt-fl" data-l="${i}" d="M282 ${y1} C370 ${y1} 355 ${y2} 438 ${y2}" stroke="${l.c}" stroke-width="${Math.max(2, Math.sqrt(l.t) * 1.1).toFixed(1)}" style="animation-delay:${(0.2 + i * 0.15).toFixed(2)}s"/>`; });
+      lins += `<g class="dt-ln" data-l="${i}"><rect x="20" y="${y1 - 26}" width="262" height="52" rx="8" fill="${l.c}" fill-opacity=".13" stroke="${l.c}" stroke-width=".8"/><rect x="20" y="${y1 - 26}" width="5" height="52" rx="2" fill="${l.c}"/><text x="34" y="${y1 - 6}" class="dt-t1">${esc(corta(l.n, 38))}</text><text x="34" y="${y1 + 13}" class="dt-t2">${l.t ? `${fnum(l.t)} trabajos${l.d ? ` · desde ${l.d}` : ''}` : ''}</text></g>`;
+    });
+    D.prods.forEach((p, k) => {
+      const y = py(p.i >= 0 ? k : k), c = D.L.find((l) => l.p.includes(k)).c, li = D.L.findIndex((l) => l.p.includes(k));
+      pros += `<g class="dt-pn" data-k="${k}" data-l="${li}" style="animation-delay:${(1 + k * 0.08).toFixed(2)}s"><rect x="438" y="${y - 14}" width="222" height="28" rx="14" fill="#fff" stroke="${c}" stroke-width="1.2"/><circle cx="454" cy="${y}" r="5" fill="${c}"/><text x="466" y="${y}" class="dt-t3">${esc(corta(p.nom, p.doi ? 23 : 28))}</text>${p.doi ? `<text x="648" y="${y}" class="dt-doi">DOI</text>` : ''}</g>`;
+    });
+    const max = Math.max(1, ...Object.values(D.porAnio));
+    let barras = '';
+    for (let a = D.a0; a <= D.a1; a++) { const n = D.porAnio[a] || 0; barras += `<i data-a="${a}" title="${a}: ${n} ${n === 1 ? 'trabajo' : 'trabajos'}" style="height:${Math.max(2, (n / max) * 46)}px"></i>`; }
+    const anios = D.a1 - D.a0;
+    const k = (n, t, rojo) => `<div class="dt-k${rojo ? ' r' : ''}"><b data-n="${n}">${fnum(n)}</b><span>${t}</span></div>`;
+    return `<section class="dt">
+      <div class="dt-ks">${anios ? k(anios, 'años investigando') : ''}${D.obras ? `<em>·</em>${k(D.obras, 'trabajos publicados')}<em>·</em>${k(D.citas, 'citas')}` : ''}<em class="fl">→</em>${k(D.prods.length, D.prods.length === 1 ? 'herramienta propia' : 'herramientas propias', 1)}</div>
+      <p class="dt-lema">Del conocimiento a la herramienta</p>
+      <p class="dt-txt">El conocimiento acumulado en ${anios ? `${anios} años` : 'años'} de investigación sobre tecnología aplicada al deporte y la salud ha desembocado en el desarrollo de herramientas propias de software científico y datos abiertos, publicadas en acceso abierto${D.conDoi ? ` y, en ${D.conDoi} casos, con identificador persistente (DOI) en Zenodo` : ''}.</p>
+      <svg class="dt-sv" viewBox="0 0 680 ${H}" role="img" aria-label="Líneas de investigación unidas con las herramientas que nacieron de ellas">${flujos}${lins}${pros}</svg>
+      <div class="dt-h">${barras}</div><div class="dt-he"><span>${D.a0}</span><span>Trabajos publicados por año</span><span>${D.a1}</span></div>
+      <div class="dt-info" id="dtInfo">Pasa por una línea para ver qué herramientas nacieron de ella; pulsa una herramienta para ir a su ficha.</div>
+    </section>`;
+  }
+  function ligarDesarrollo(caja) {
+    const sec = $('.dt', caja); if (!sec || !dtDatos) return;
+    const D = dtDatos, info = $('#dtInfo', sec), base = info.innerHTML;
+    setTimeout(() => sec.classList.add('listo'), 1000 + D.prods.length * 80 + 600);
+    const hi = (i) => {
+      $$('[data-l]', sec).forEach((e) => e.classList.toggle('dim', i >= 0 && +e.dataset.l !== i));
+      $$('.dt-h i', sec).forEach((b) => { b.style.background = i >= 0 && D.L[i].d && +b.dataset.a >= D.L[i].d ? D.L[i].c : ''; });
+    };
+    const verL = (i) => { const l = D.L[i]; hi(i); info.innerHTML = `<b>${esc(l.n)}</b><br>${l.t ? `${fnum(l.t)} trabajos publicados${l.d ? ` desde ${l.d}` : ''} → ` : ''}${l.p.length} ${l.p.length === 1 ? 'herramienta' : 'herramientas'}: ${l.p.map((k) => esc(D.prods[k].nom)).join(', ')}.`; };
+    const verP = (k) => { const p = D.prods[k], li = D.L.findIndex((l) => l.p.includes(k)); hi(li); info.innerHTML = `<b>${esc(p.nom)}</b> · ${esc(p.tipo)}${p.ver ? ' · ' + esc(p.ver) : ''}${p.lic ? ' · licencia ' + esc(p.lic) : ''}<br>${p.doi ? `DOI ${esc(p.doi)} · Zenodo, acceso abierto` : 'Repositorio público en GitHub'} · pulsa para ver la ficha`; };
+    const fuera = () => { hi(-1); info.innerHTML = base; };
+    $$('.dt-ln', sec).forEach((g) => { g.onmouseenter = () => verL(+g.dataset.l); g.onmouseleave = fuera; });
+    $$('.dt-pn', sec).forEach((g) => { g.onmouseenter = () => verP(+g.dataset.k); g.onmouseleave = fuera; g.onclick = () => { const m = D.prods[+g.dataset.k].m; if (m.vista !== actual.vista) { irA('v:' + m.vista); setTimeout(() => irMerito(String(m.id)), 150); } else irMerito(String(m.id)); }; });
+    // Las cifras cuentan desde cero al entrar.
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) $$('[data-n]', sec).forEach((e) => { const n = +e.dataset.n, t0 = performance.now(); const paso = (t) => { const q = Math.min(1, (t - t0) / 1400); e.textContent = fnum(Math.round(n * (1 - Math.pow(1 - q, 3)))); if (q < 1) requestAnimationFrame(paso); }; requestAnimationFrame(paso); });
+  }
+
   // ---------- Liderazgo (v0.17): resumen arriba de «Grupos de investigación», calculado con lo que ya hay ----------
   function htmlLiderazgo() {
     const vis = (v) => P.datos.meritos.filter((m) => m.vista === v && (trabajo || publico(m)));
@@ -826,7 +902,7 @@
     return (et ? `<div class="pcs">${et}</div>` : '') + blq;
   }
   // ---------- Indicadores de calidad (v0.17): índice h en cada base de datos ----------
-  function htmlIndicadores(l) {
+  function htmlIndicadoresCalidad(l) {
     const B = BIB();
     const val = (m, re) => { for (const p of m.filas.flat()) if (re.test(p.e)) return p.v; return ''; };
     const fuentes = l.map((m) => ({ f: val(m, /fuente/i), h: +val(m, /^índice h$/i), d: val(m, /fecha/i) })).filter((x) => x.h);
