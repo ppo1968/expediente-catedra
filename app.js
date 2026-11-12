@@ -691,7 +691,7 @@
     const clave = actual.cm || actual.c, sinJust = trabajo && actual.c !== 'SC' && actual.c !== 'PV' ? l.filter((m) => !m.nota && !m.dato && !m.pdfs.length) : [];
     if (propJ && propJ.k !== clave) propJ = null;
     const htmlPJ = !sinJust.length && !propJ ? '' : propJ ? htmlPropJ() : `<div class="pj-ban"><div><b>${sinJust.length} ${sinJust.length === 1 ? 'entrada sin justificante' : 'entradas sin justificante'}</b><span>El programa busca en E: el documento de cada una y te lo propone. Tú solo validas.</span></div><button class="bs prim" id="bPJ">Buscar justificantes automáticamente</button></div>`;
-    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadoresCalidad(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + (actual.vista === 'software' ? htmlDesarrollo() : '') + (actual.vista === 'catedras' ? htmlCatedra() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
+    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadoresCalidad(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + (actual.vista === 'software' ? htmlDesarrollo() : '') + (actual.vista === 'catedras' ? htmlCatedra() : '') + (actual.vista === 'digitum' ? htmlDigitum() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' && actual.vista !== 'digitum' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
     const bN = $('#bNE'); if (bN) bN.onclick = async () => { const r = await op('nuevo', { cod: actual.vista ? actual.cm : actual.c }, 'Entrada añadida.'); if (r) { const e = $(`.merito[data-id="${r.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); const c = $('.val.ed', e); if (c) c.click(); } } };
     $$('[data-ir]', caja).forEach((t) => { t.onclick = () => { const e = $(`.merito[data-id="${t.dataset.ir}"]`); if (e) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bQ = $('#bQA'); if (bQ) bQ.onclick = () => { quitando = !quitando; pintarLista(); };
@@ -710,6 +710,7 @@
     ligarPropJ(caja, sinJust, clave);
     if (actual.vista === 'software') ligarDesarrollo(caja);
     if (actual.vista === 'catedras') ligarCatedra(caja);
+    if (actual.vista === 'digitum') ligarDigitum(caja);
     $$('[data-irrel]', caja).forEach((b) => { b.onclick = () => { const m = P.datos.meritos.find((x) => String(x.id) === b.dataset.irrel); if (!m) return; const c = m.vista ? 'v:' + m.vista : m.cod; if (c !== actual.c) { irA(c); setTimeout(() => irMerito(String(m.id)), 150); } else irMerito(String(m.id)); }; });
     $$('[data-irart]', caja).forEach((b) => { b.onclick = () => { const id = b.dataset.irart; irA('v:articulos'); setTimeout(() => { const e = $(`[data-id="${id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); e.classList.add('destaca'); setTimeout(() => e.classList.remove('destaca'), 2200); } }, 120); }; });
     if (actual.c === 'SC' && trabajo) pintarDocs();
@@ -897,6 +898,64 @@
     const marca = (i) => { $$('[data-i]', sec).forEach((e) => e.classList.toggle('on', i >= 0 && +e.dataset.i === i)); };
     const ir = (i) => { const m = hs[i].m, c = 'v:' + m.vista; if (c !== actual.c) { irA(c); setTimeout(() => irMerito(String(m.id)), 150); } else irMerito(String(m.id)); };
     $$('[data-i]', sec).forEach((e) => { e.onmouseenter = () => marca(+e.dataset.i); e.onmouseleave = () => marca(-1); e.onclick = () => ir(+e.dataset.i); });
+  }
+
+  // ---------- Digitum (v0.17): burbujas por colección; cada punto es un documento (m.dg = {h, col}) ----------
+  const DG_C = [['tec', 'Tecnología aplicada al deporte', '#4B9BE8'], ['cancer', 'Ejercicio y cáncer de mama', '#E0668F'], ['futbol', 'Fútbol, actividad física y salud', '#2BB38A'], ['trabajo', 'Documentos de trabajo: análisis táctico', '#F2A93B'], ['datos', 'Datos abiertos', '#9C8FEA']];
+  let dgDatos = null;
+  function datosDigitum() {
+    const docs = P.datos.meritos.filter((m) => m.dg && (trabajo || publico(m)));
+    const grupos = DG_C.map(([g, n, c]) => ({ g, n, c, l: docs.filter((m) => m.dg.col === g).sort((a, b) => String(a.anio).localeCompare(String(b.anio))) })).filter((x) => x.l.length);
+    // Dentro de cada colección, los puntos van en espiral (girasol); las colecciones se colocan sin solaparse.
+    const r0 = 5.2, paso = r0 * 2.05;
+    grupos.forEach((G) => { G.R = paso * Math.sqrt(G.l.length) * 0.92 + r0 + 7; G.p = G.l.map((m, i) => { const a = i * 2.39996, r = paso * 0.92 * Math.sqrt(i + 0.5); return [Math.cos(a) * r, Math.sin(a) * r]; }); });
+    const orden = [...grupos].sort((a, b) => b.R - a.R), puestos = [];
+    orden.forEach((G, k) => {
+      if (!k) { G.x = 0; G.y = 0; puestos.push(G); return; }
+      let mejor = null;
+      for (const B of puestos) for (let t = 0; t < 72; t++) {
+        const a = (t / 72) * Math.PI * 2, x = B.x + Math.cos(a) * (B.R + G.R + 6), y = B.y + Math.sin(a) * (B.R + G.R + 6);
+        if (puestos.some((O) => Math.hypot(O.x - x, O.y - y) < O.R + G.R + 5)) continue;
+        const dist = Math.hypot(x, y * 1.15); if (!mejor || dist < mejor.d) mejor = { x, y, d: dist };
+      }
+      G.x = mejor.x; G.y = mejor.y; puestos.push(G);
+    });
+    const x0 = Math.min(...grupos.map((G) => G.x - G.R)), x1 = Math.max(...grupos.map((G) => G.x + G.R)), y0 = Math.min(...grupos.map((G) => G.y - G.R)), y1 = Math.max(...grupos.map((G) => G.y + G.R));
+    const anios = docs.map((m) => +m.anio).filter(Boolean);
+    return { grupos, docs, caja: [x0 - 4, y0 - 4, x1 - x0 + 8, y1 - y0 + 8], a0: Math.min(...anios), a1: Math.max(...anios) };
+  }
+  function htmlDigitum() {
+    const D = (dgDatos = datosDigitum());
+    if (!D.docs.length) return '';
+    let k = 0;
+    const svg = D.grupos.map((G, gi) => `<circle cx="${G.x.toFixed(1)}" cy="${G.y.toFixed(1)}" r="${G.R.toFixed(1)}" fill="${G.c}" fill-opacity=".13" stroke="${G.c}" stroke-opacity=".55" data-dgg="${gi}"/>` + G.p.map(([px, py], i) => `<circle class="dg-p" data-dgg="${gi}" data-dgi="${i}" cx="${(G.x + px).toFixed(1)}" cy="${(G.y + py).toFixed(1)}" r="5.2" fill="${G.c}" style="animation-delay:${(0.1 + k++ * 0.012).toFixed(2)}s"/>`).join('')).join('');
+    const ley = D.grupos.map((G, gi) => `<button data-dgl="${gi}"><i style="background:${G.c}"></i>${esc(G.n)} <em>${G.l.length}</em></button>`).join('');
+    const kp = (n, t) => `<div><b>${n}</b><span>${t}</span></div>`;
+    return `<section class="dgx">
+      <div class="dgx-iz"><svg viewBox="${D.caja.map((v) => v.toFixed(1)).join(' ')}" role="img" aria-label="Documentos de Digitum agrupados por colección">${svg}</svg><div class="dgx-ley">${ley}</div></div>
+      <div class="dgx-de">
+        <p class="dgx-sup">DIGITUM · REPOSITORIO INSTITUCIONAL DE LA UNIVERSIDAD DE MURCIA</p>
+        <h3>Material en acceso abierto</h3>
+        <div class="dgx-ks">${kp(D.docs.length, 'documentos')}${kp(D.grupos.length, 'colecciones')}${kp(D.a1 - D.a0 + 1, `años publicando (${D.a0}–${D.a1})`)}</div>
+        <p class="dgx-txt">Material docente, documentos de trabajo y datos depositados en abierto en el repositorio de la Universidad de Murcia. Cada punto es un documento.</p>
+        <div class="dgx-inf" id="dgInf">Pasa por una colección o por un punto para ver el documento; púlsalo para ir a su ficha.</div>
+      </div>
+    </section>`;
+  }
+  function ligarDigitum(caja) {
+    const sec = $('.dgx', caja); if (!sec || !dgDatos) return;
+    const D = dgDatos, inf = $('#dgInf', sec), base = inf.innerHTML;
+    setTimeout(() => sec.classList.add('listo'), 600 + D.docs.length * 12);
+    const hi = (gi) => { $$('[data-dgg]', sec).forEach((e) => e.classList.toggle('dim', gi >= 0 && +e.dataset.dgg !== gi)); $$('[data-dgl]', sec).forEach((b) => b.classList.toggle('on', +b.dataset.dgl === gi)); };
+    const verG = (gi) => { const G = D.grupos[gi], ys = G.l.map((m) => +m.anio).filter(Boolean); hi(gi); inf.innerHTML = `<b>${esc(G.n)}</b><br>${G.l.length} documentos · ${Math.min(...ys)}${Math.max(...ys) !== Math.min(...ys) ? '–' + Math.max(...ys) : ''} · ${esc(nombreDe(G.l[0].vista ? 'v:' + G.l[0].vista : G.l[0].cod))}`; };
+    const fuera = () => { hi(-1); inf.innerHTML = base; };
+    $$('[data-dgl]', sec).forEach((b) => { b.onmouseenter = () => verG(+b.dataset.dgl); b.onmouseleave = fuera; b.onclick = () => verG(+b.dataset.dgl); });
+    $$('.dg-p', sec).forEach((c) => {
+      const m = D.grupos[+c.dataset.dgg].l[+c.dataset.dgi];
+      c.onmouseenter = () => { hi(+c.dataset.dgg); const tit = m.dg.col === 'futbol' ? ((m.t.match(/Nombre del material:\s*(.+)$/) || [])[1] || m.t) : m.t; inf.innerHTML = `<b>${esc(tit.slice(0, 150))}</b><br>${esc(m.anio || '')} · ${esc(D.grupos[+c.dataset.dgg].n)} · acceso abierto`; };
+      c.onmouseleave = fuera;
+      c.onclick = () => { const cod = m.vista ? 'v:' + m.vista : m.cod; if (cod !== actual.c) { irA(cod); setTimeout(() => irMerito(String(m.id)), 150); } else irMerito(String(m.id)); };
+    });
   }
 
   // ---------- Liderazgo (v0.17): resumen arriba de «Grupos de investigación», calculado con lo que ya hay ----------
@@ -1090,6 +1149,7 @@
     const orden = usadas.map(([k]) => k);
     let s = etapas(y0, y1).map(([a, b, nom], i) => {
       const xa = x0 + (Math.max(a, y0) - y0) * w, wb = (Math.min(b, y1 + 1) - Math.max(a, y0)) * w, corto = nom.replace('Universidad de ', '');
+      if (wb <= 0) return ''; // etapa anterior a la primera entrada: no se dibuja
       const cab = nom.length * 6.3 + 10 < wb ? nom : corto.length * 6.3 + 10 < wb ? corto : '';
       return `<g><rect x="${xa}" y="0" width="${wb}" height="${top + H + 2}" ${etRect(nom, i)}/><title>${esc(nom)}</title>${cab ? `<text x="${xa + 5}" y="13" ${etTxt(nom)}>${esc(cab)}</text>` : ''}</g>`;
     }).join('');
