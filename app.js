@@ -219,7 +219,7 @@
     }).join('');
     const mas = trabajo ? `<button class="chip busj" data-busj>Buscar justificante</button><button class="chip nuevo" data-ana>${m.pdfs.length ? '+ PDF' : '+ Añadir PDF'}</button>` : '';
     const spiM = actual && LIBROS_OTROS.has(actual.vista) ? (() => { const q = spiDe(m); return `<span class="pch spi ${q ? 'q' + q.q : 'no'}" title="${q ? esc(q.nom) + ' · ICEE ' + q.icee + ' · SPI 2022' : 'SPI 2022'}">${q ? spiTexto(q) : 'Editorial no incluida en SPI'}</span>`; })() : '';
-    const tesM = htmlTesisExtra(m);
+    const tesM = htmlTesisExtra(m) + htmlRelacionados(m);
     return f || mas || spiM || tesM ? `${tesM}${spiM ? `<div class="pcs">${spiM}</div>` : ''}<div class="pdfs">${f}${mas}</div>` : '';
   }
   // Cada entrada se escribe como en el CVN: número y filas «Etiqueta: valor», a una o dos columnas.
@@ -709,6 +709,7 @@
     const bCS = $('#bClasSC'); if (bCS) bCS.onclick = () => irClasificar('sueltos');
     ligarPropJ(caja, sinJust, clave);
     if (actual.vista === 'software') ligarDesarrollo(caja);
+    $$('[data-irrel]', caja).forEach((b) => { b.onclick = () => { const m = P.datos.meritos.find((x) => String(x.id) === b.dataset.irrel); if (!m) return; const c = m.vista ? 'v:' + m.vista : m.cod; if (c !== actual.c) { irA(c); setTimeout(() => irMerito(String(m.id)), 150); } else irMerito(String(m.id)); }; });
     $$('[data-irart]', caja).forEach((b) => { b.onclick = () => { const id = b.dataset.irart; irA('v:articulos'); setTimeout(() => { const e = $(`[data-id="${id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); e.classList.add('destaca'); setTimeout(() => e.classList.remove('destaca'), 2200); } }, 120); }; });
     if (actual.c === 'SC' && trabajo) pintarDocs();
   }
@@ -792,7 +793,7 @@
     { n: 'Carga interna y salud cardiovascular', re: /heart rate|hrv|blood pressure|cardiovascular|physiolog|internal load|lactate/i, c: '#D4537E' },
     { n: 'Ejercicio y cáncer', re: /cancer|oncolog|breast/i, c: '#EF9F27' },
   ];
-  const DT_V = ['software', 'datos_abiertos', 'apps_moviles'];
+  const DT_V = ['software', 'datos_abiertos', 'plataformas_web', 'apps_moviles'];
   let dtDatos = null;
   function datosDesarrollo() {
     const B = BIB(), obras = (B && B.obras) || [];
@@ -900,6 +901,12 @@
     const titulo = `Trabajos científicos derivados${der.length ? ` (${der.length})` : ''}`;
     const blq = m.derivados ? `<div class="tes-d"><b>${titulo}</b>${der.length ? `<ol>${li}</ol>` : '<p>No consta ningún artículo publicado a partir de esta tesis.</p>'}</div>` : '';
     return (et ? `<div class="pcs">${et}</div>` : '') + blq;
+  }
+  // ---------- Méritos relacionados (v0.17): enlaces entre fichas de apartados distintos (m.rel = [ids]) ----------
+  function htmlRelacionados(m) {
+    const l = (m.rel || []).map((id) => P.datos.meritos.find((x) => x.id === id)).filter((x) => x && (trabajo || publico(x)));
+    if (!l.length) return '';
+    return `<div class="rel-m"><b>Relacionado</b>${l.map((x) => `<button data-irrel="${x.id}"><span>${esc(nombreDe(x.vista ? 'v:' + x.vista : x.cod))}</span>${esc(x.t.slice(0, 120))}</button>`).join('')}</div>`;
   }
   // ---------- Indicadores de calidad (v0.17): índice h en cada base de datos ----------
   function htmlIndicadoresCalidad(l) {
