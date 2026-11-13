@@ -1987,7 +1987,7 @@
     if (mv) mv.onchange = async () => {
       if (!mv.value) return;
       if (buscar(id).nota) await window.api.operar('convertirNota', { id });
-      op('mover', { id, cod: mv.value }, `Movido a ${nombreDe(mv.value)}.`);
+      op('mover', { id, cod: mv.value, sinVista: !String(mv.value).startsWith('v:') }, `Movido a ${nombreDe(mv.value)}.`);
     };
     const db = $('[data-del]', e);
     if (db) db.onclick = () => op('eliminar', { id }, 'Eliminado.');
