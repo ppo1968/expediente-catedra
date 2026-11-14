@@ -179,6 +179,7 @@
     const pts = items.filter((it) => it.firstElementChild.textContent !== 'Ajustes');
     const cuenta = (it) => {
       const cods = $$('.desp button[data-c]', it).map((b) => b.dataset.c);
+      if (!cods.length && it.dataset.cd && it.dataset.cd !== 'T') cods.push(it.dataset.cd); // opción directa (Gestión)
       return cods.reduce((s, c) => s + entradasMenu(c).length, 0);
     };
     const k0 = pts.findIndex((it) => actual && actual.bloque === it.firstElementChild.textContent);
@@ -541,7 +542,7 @@
   }
   // ---------- Trayectoria (v0.17): río de méritos por bloque, etapas e hitos ----------
   // Sin listas largas: el año se abre con un botón por bloque y la lista solo sale si se pide.
-  const BLQ_COL = { Perfil: '#8A8F98', Formación: '#BA7517', Docencia: '#1D9E75', Investigación: '#2F6FB0', Transferencia: '#D85A30', 'Otros méritos': '#9B6BB3', Complementos: '#B4B2A9' };
+  const BLQ_COL = { Perfil: '#8A8F98', Formación: '#BA7517', Docencia: '#1D9E75', Investigación: '#2F6FB0', Transferencia: '#D85A30', Gestión: '#4E6A8E', 'Otros méritos': '#9B6BB3', Complementos: '#B4B2A9' };
   let trOcultos = new Set(), trAbierto = null, trAnimar = true;
   function bloqueDe(m) {
     const c = m.vista ? 'v:' + m.vista : m.cod;
