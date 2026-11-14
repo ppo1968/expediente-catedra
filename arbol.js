@@ -78,7 +78,7 @@
   // Cada una agrupa méritos de un apartado del CVN («cod»); el mérito guarda la opción en «vista».
   // El CVN, el Word y las carpetas del tribunal siguen usando el apartado del CVN.
   ARBOL.vistas = {
-    tfg: { cod: '4.2', nom: 'Trabajos fin de grado dirigidos' }, tfm: { cod: '4.2', nom: 'Trabajos fin de máster dirigidos' }, trib_tfg: { cod: '6.13', nom: 'Tribunales de TFG' },
+    tfg: { cod: '4.2', nom: 'Trabajos fin de grado dirigidos' }, tfm: { cod: '4.2', nom: 'Trabajos fin de máster dirigidos' }, trib_tfg: { cod: '6.13', nom: 'Tribunales de TFG' }, trib_tfm: { cod: '6.13', nom: 'Tribunales de TFM' },
     gid: { cod: '5.1', nom: 'Grupo de innovación docente' },
     grupos: { cod: '5.1', nom: 'Grupos de investigación' }, proyectos: { cod: '5.2', nom: 'Proyectos de I+D+i' },
     articulos: { cod: '6.2', nom: 'Artículos' }, libros: { cod: '6.2', nom: 'Libros y capítulos' }, indicadores: { cod: '6.1', nom: 'Indicadores de calidad y rankings' },
@@ -104,7 +104,7 @@
   const V = (...ids) => ids.map((i) => ['v:' + i, ARBOL.vistas[i].nom]);
   const H = (t) => ['', t, 'h'];
   ARBOL.menuV17 = {
-    Docencia: [...V('docentium', 'dedicacion', 'encuestas'), ['4.1', 'Formación académica impartida'], H('Trabajos fin de estudios'), ...V('tfg', 'tfm', 'trib_tfg'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ...V('libros_doc', 'digitum'), ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
+    Docencia: [...V('docentium', 'dedicacion', 'encuestas'), ['4.1', 'Formación académica impartida'], ['g:tfe', 'Trabajos fin de estudios', 'h'], ...V('tfg', 'tfm', 'trib_tfg', 'trib_tfm'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ...V('libros_doc', 'digitum'), ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
     Investigación: [...V('indicadores', 'internacional'), H('Dirección de tesis doctorales'), ...V('tesis', 'tesis_curso', 'formacion_inv', 'trib_tesis'), H('Producción científica'), ...V('articulos', 'libros_editor', 'libros_autor', 'capitulos', 'capitulos_actas'), H('Labor editorial'), ...V('editor', 'revisor'), H('Grupos y proyectos'), ...V('grupos', 'proyectos', 'redes'), H('Congresos'), ...V('dir_congresos', 'comite_cientifico', 'comite_organizador', 'plenarias', 'ponencias', 'comunicaciones', 'asistencia'), H('Jornadas y seminarios'), ...V('jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Evaluación, comités y tribunales'), ...V('evaluacion', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
     Transferencia: [H('Desarrollo tecnológico'), ...V('software', 'datos_abiertos', 'plataformas_web', 'apps_moviles'), H('Contratos y reconocimiento'), ...V('contratos', 'sexenio_t'), H('Otras actividades de transferencia'), ...V('asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'libros_transf', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision')],
     'Otros méritos': V('tit_deportivas', 'acreditaciones', 'premios', 'colef', 'padrino'),

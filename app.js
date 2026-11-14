@@ -128,6 +128,13 @@
     actual = { c, cm, vista, opcion: n, bloque: tb, ficha: c === '1', inicio: tb === 'Inicio', tray: c === 'T' };
     if (c === '6.2') bibAnimar = true;
     if (c === 'T') trAnimar = true;
+    if (c === 'g:tfe') { tfeAnimar = true; tfeCurso = null; }
+    if (c === 'g:cur') { curAnimar = true; curEpoca = null; }
+    if (c === 'g:cmi') { cmiAnimar = true; cmiAnio = null; }
+    if (c === 'g:dtd') dtdAnimar = true;
+    if (c === 'g:pc') { pcAnimar = true; pcAnio = null; }
+    if (c === 'g:dt') { dtAnimar = true; dtLinea = null; }
+    if (c === 'g:oat') { oatAnimar = true; oatCat = null; }
     clearTimeout(hT);
     $('#lista').classList.toggle('esinicio', !!actual.inicio);
     panelT = bloque && bloque.classList.contains('tiene') ? tb : null;
@@ -148,7 +155,7 @@
     const VIS = trabajo ? SINOC : [...SINOC.map(([t, l, cd]) => [t, l && sinTitulosVacios(l.filter((o) => o[2] === 'h' || hay(o[0]))), cd]).filter(([t, l, cd]) => t !== 'Ajustes' && (l ? l.length : !cd || cd === 'T' || hay(cd))), ...(AJ ? [AJ] : [])];
     nav.innerHTML = VIS.map(([t, l, cd], i) => {
       const con = l && l.length;
-      return `<div class="item ${con ? 'tiene' : ''} ${i >= VIS.length - 3 ? 'dcha' : ''}" data-i="${i}" data-cd="${esc(cd || '')}"><button aria-haspopup="${con ? 'true' : 'false'}" aria-expanded="false">${esc(t)}</button>${con ? `<div class="desp sinc">${l.map((o) => (o[2] === 'h' ? `<div class="dh">${esc(o[1])}</div>` : `<button class="${APD(o[0]).sub ? 'dentro' : ''}" data-c="${esc(o[0])}" data-n="${esc(o[1])}"><span>${esc(o[1])}</span></button>`)).join('')}</div>` : ''}</div>`;
+      return `<div class="item ${con ? 'tiene' : ''} ${i >= VIS.length - 3 ? 'dcha' : ''}" data-i="${i}" data-cd="${esc(cd || '')}"><button aria-haspopup="${con ? 'true' : 'false'}" aria-expanded="false">${esc(t)}</button>${con ? `<div class="desp sinc">${l.map((o) => (o[2] === 'h' ? (o[0] ? `<button class="dh dhb" data-c="${esc(o[0])}" data-n="${esc(o[1])}"><span>${esc(o[1])}</span></button>` : `<div class="dh">${esc(o[1])}</div>`) : `<button class="${APD(o[0]).sub ? 'dentro' : ''}" data-c="${esc(o[0])}" data-n="${esc(o[1])}"><span>${esc(o[1])}</span></button>`)).join('')}</div>` : ''}</div>`;
     }).join('');
     items = $$('.item', nav);
     items.forEach((it) => {
@@ -680,6 +687,13 @@
     if (actual.tray) { pintarTrayectoria(); $('#lista').scrollTop = y; return; }
     if (actual.ficha) { pintarFicha(); $('#lista').scrollTop = y; ligarEnlaces(caja); return; }
     if (actual.bloque === 'Ajustes') { pintarAjustes(); return; }
+    if (actual.c === 'g:oat') { caja.innerHTML = htmlOat(); ligarOat(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
+    if (actual.c === 'g:dt') { caja.innerHTML = htmlDt(); ligarDt(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
+    if (actual.c === 'g:pc') { caja.innerHTML = htmlPc(); ligarPc(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
+    if (actual.c === 'g:dtd') { caja.innerHTML = htmlDtd(); ligarDtd(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
+    if (actual.c === 'g:cmi') { caja.innerHTML = htmlCmi(); ligarCmi(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
+    if (actual.c === 'g:cur') { caja.innerHTML = htmlCur(); ligarCur(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
+    if (actual.c === 'g:tfe') { caja.innerHTML = htmlTFE(); ligarTFE(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
     if (actual.vista === 'internacional') { caja.innerHTML = htmlInternacional(); ligarInternacional(caja); $('#lista').scrollTop = y; return; }
     const esPub = actual.c === '6.2';
     const deAqui = () => (actual.vista ? entradasMenu(actual.cm) : actual.cvn ? todasDe(actual.c) : entradas(actual.c));
@@ -1105,6 +1119,780 @@
     const h = nav + grupos.map(([k, nom, v]) => `<h3 class="tfe-gr" id="tfe-${k}">${esc(nom)} <span>${v.length}</span></h3>${k === 'X' && trabajo ? '<p class="cuenta">Estas entradas no dicen si son tesis, TFM o TFG. Revísalas: alguna puede no ser un trabajo dirigido.</p>' : ''}${v.map(htmlMerito).join('')}`).join('');
     numVista = null;
     return h;
+  }
+  // ---------- Trabajos fin de estudios (14/11/2026): TFG y TFM dirigidos y tribunales, juntos en una página ----------
+  // Se abre al pulsar el título «Trabajos fin de estudios» del menú de Docencia (código g:tfe).
+  const TFE_B = [
+    ['tfg', 'Trabajos fin de grado dirigidos', 'TFG dirigidos', '#5DCAA5'],
+    ['tfm', 'Trabajos fin de máster dirigidos', 'TFM dirigidos', '#F0997B'],
+    ['trib_tfg', 'Tribunales de TFG', 'tribunales de TFG', '#85B7EB'],
+    ['trib_tfm', 'Tribunales de TFM', 'tribunales de TFM', '#FAC775'],
+  ];
+  let tfeAb = new Set(), tfeCurso = null, tfeAnimar = true, tfeD = null;
+  const campoTFE = (m, e) => { for (const p of m.filas.flat()) if (p.e === e && p.v) return p.v; return ''; };
+  const cursoTFE = (m) => { const c = campoTFE(m, 'Curso académico'); if (/^\d{4}\/\d{4}$/.test(c)) return c; const a = +m.anio; return a ? `${a - 1}/${a}` : ''; };
+  const cursoC = (c) => (c ? `${c.slice(2, 4)}/${c.slice(7, 9)}` : '');
+  function datosTFE() {
+    const B = TFE_B.map(([v, nom, corto, col]) => ({ v, nom, corto, col, l: entradasMenu('v:' + v) }));
+    const cursos = [...new Set(B.flatMap((b) => b.l.map(cursoTFE)).filter(Boolean))].sort();
+    const por = cursos.map((c) => B.map((b) => b.l.filter((m) => cursoTFE(m) === c).length));
+    const dir = [...B[0].l, ...B[1].l];
+    const cal = { mh: 0, sb: 0, nt: 0, ap: 0 }, notas = [];
+    for (const m of dir) {
+      const q = campoTFE(m, 'Calificación obtenida'); if (!q) continue;
+      const n = parseFloat(q.replace(',', '.')); if (!isNaN(n)) notas.push(n);
+      if (/honor/i.test(q)) cal.mh++; else if (/sobresaliente/i.test(q)) cal.sb++; else if (/notable/i.test(q)) cal.nt++; else if (/aprobado/i.test(q)) cal.ap++;
+    }
+    const media = notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null;
+    return { B, cursos, por, cal, media, nCal: notas.length };
+  }
+  const fdec = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  function htmlTFE() {
+    const D = (tfeD = datosTFE());
+    const { B, cursos, por } = D;
+    const nDir = B[0].l.length + B[1].l.length, nTri = B[2].l.length + B[3].l.length;
+    const rango = cursos.length ? `${cursoC(cursos[0])} – ${cursoC(cursos[cursos.length - 1])}` : '';
+    const an = tfeAnimar ? ' anima' : '';
+    // Tarjetas
+    const ks = B.map((b, i) => `<button class="tfx-k" data-tfk="${b.v}" style="--c:${b.col}"><i></i><b data-cuenta="${b.l.length}">${tfeAnimar ? 0 : b.l.length}</b><span>${esc(b.corto)}</span></button>`).join('');
+    // Columnas apiladas por curso
+    const W = 660, H = 190, top = 18, bot = 26, iz = 6;
+    const max = Math.max(1, ...por.map((p) => p.reduce((a, b) => a + b, 0)));
+    const paso = cursos.length ? (W - iz * 2) / cursos.length : 0, ancho = Math.min(30, paso * 0.58);
+    const cols = cursos.map((c, k) => {
+      let y = H - bot; const x = iz + paso * k + (paso - ancho) / 2;
+      const tot = por[k].reduce((a, b) => a + b, 0);
+      const seg = por[k].map((n, i) => { if (!n) return ''; const h = (n / max) * (H - top - bot); y -= h; return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${ancho.toFixed(1)}" height="${Math.max(0, h - 1.5).toFixed(1)}" rx="2.5" fill="${B[i].col}"/>`; }).join('');
+      return `<g class="tfx-col ${tfeCurso === c ? 'on' : ''} ${tfeCurso && tfeCurso !== c ? 'dim' : ''}" data-tfc="${c}" style="--d:${(k * 0.05).toFixed(2)}s"><rect class="tfx-hit" x="${(iz + paso * k).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${H}" fill="transparent"/><g class="tfx-bar">${seg}</g><text x="${(x + ancho / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle" class="tfx-tot">${tot}</text><text x="${(x + ancho / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="tfx-ax">${cursoC(c)}</text></g>`;
+    }).join('');
+    // Calificaciones de los trabajos dirigidos
+    const C = D.cal, tc = C.mh + C.sb + C.nt + C.ap;
+    const tramo = (n, t, col) => (n ? `<span style="flex:${n};background:${col}" title="${t}: ${n}"></span>` : '');
+    const ley = (n, t, col) => (n ? `<em><i style="background:${col}"></i>${t} <b>${n}</b></em>` : '');
+    const notas = tc ? `<div class="tfx-cal"><div class="tfx-cal-c"><span>Calificaciones de los ${tc} trabajos dirigidos</span>${D.media ? `<b>${fdec(D.media)}</b><small>nota media</small>` : ''}</div><div class="tfx-cal-b${an}">${tramo(C.mh, 'Matrícula de Honor', '#F4C0D1')}${tramo(C.sb, 'Sobresaliente', '#5DCAA5')}${tramo(C.nt, 'Notable', '#85B7EB')}${tramo(C.ap, 'Aprobado', '#B4B2A9')}</div><div class="tfx-cal-l">${ley(C.mh, 'Matrícula de Honor', '#F4C0D1')}${ley(C.sb, 'Sobresaliente', '#5DCAA5')}${ley(C.nt, 'Notable', '#85B7EB')}${ley(C.ap, 'Aprobado', '#B4B2A9')}</div></div>` : '';
+    const panel = `<section class="tfx${an}">
+      <div class="tfx-iz">
+        <p class="tfx-sup">DIRECCIÓN Y EVALUACIÓN · UNIVERSIDAD DE MURCIA</p>
+        <h3>${nDir} trabajos dirigidos y ${nTri} tribunales</h3>
+        <p class="tfx-txt">${cursos.length} cursos académicos (${rango}) en el Grado en Ciencias de la Actividad Física y del Deporte y en el Máster en Investigación en Ciencias de la Actividad Física y del Deporte.</p>
+        <div class="tfx-ks">${ks}</div>
+        ${notas}
+      </div>
+      <div class="tfx-de">
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trabajos y tribunales por curso académico">${cols}</svg>
+        <div class="tfx-inf" id="tfxInf">${tfeCurso ? infoCurso(tfeCurso) : 'Pasa por un curso para ver su detalle; púlsalo para ver solo ese curso.'}</div>
+      </div>
+    </section>`;
+    const filtro = tfeCurso ? `<div class="tfx-fil">Curso ${esc(tfeCurso)} <button id="tfxQ" aria-label="Ver todos los cursos">Ver todos ×</button></div>` : '';
+    const bloques = B.map((b) => {
+      const l = tfeCurso ? b.l.filter((m) => cursoTFE(m) === tfeCurso) : b.l;
+      const cs = [...new Set(b.l.map(cursoTFE).filter(Boolean))].sort();
+      const r = cs.length ? (cs.length > 1 ? `${cursoC(cs[0])} – ${cursoC(cs[cs.length - 1])}` : cursoC(cs[0])) : '';
+      const abierto = l.length && (tfeAb.has(b.v) || (tfeCurso && l.length));
+      numVista = new Map(l.map((m, i) => [m.id, i + 1]));
+      const html = abierto ? l.map(htmlMerito).join('') : '';
+      numVista = null;
+      return `<details class="tfb ${l.length ? '' : 'vacio'}" data-tfb="${b.v}" style="--c:${b.col}" ${abierto ? 'open' : ''}><summary><i></i><span class="tfb-t">${esc(b.nom)}</span><span class="tfb-r">${tfeCurso ? (l.length ? 'en este curso' : 'ninguno en este curso') : r}</span><b>${l.length}</b><span class="tfb-fl" aria-hidden="true"></span></summary><div class="tfb-l">${html}</div></details>`;
+    }).join('');
+    return panel + filtro + `<div class="tfb-s">${bloques}</div>`;
+  }
+  function infoCurso(c) {
+    const D = tfeD, k = D.cursos.indexOf(c); if (k < 0) return '';
+    const p = D.por[k], tot = p.reduce((a, b) => a + b, 0);
+    return `<b>Curso ${esc(c)}</b> · ${tot} en total<br>${D.B.map((b, i) => `<span class="tfx-pt"><i style="background:${b.col}"></i>${p[i]} ${esc(b.corto)}</span>`).join('')}`;
+  }
+  function ligarTFE(caja) {
+    const sec = $('.tfx', caja); if (!sec) return;
+    const inf = $('#tfxInf', sec), base = inf.innerHTML;
+    if (tfeAnimar) {
+      tfeAnimar = false;
+      $$('[data-cuenta]', sec).forEach((e) => {
+        const fin = +e.dataset.cuenta, t0 = performance.now(), dur = 900;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { e.textContent = fin; return; }
+        const paso = (t) => { const x = Math.min(1, (t - t0) / dur); e.textContent = Math.round(fin * (1 - Math.pow(1 - x, 3))); if (x < 1) requestAnimationFrame(paso); };
+        requestAnimationFrame(paso);
+      });
+      setTimeout(() => sec.classList.remove('anima'), 1600);
+    }
+    $$('.tfx-col', sec).forEach((g) => {
+      g.onmouseenter = () => { inf.innerHTML = infoCurso(g.dataset.tfc); $$('.tfx-col', sec).forEach((x) => x.classList.toggle('hov', x === g)); };
+      g.onmouseleave = () => { inf.innerHTML = base; $$('.tfx-col', sec).forEach((x) => x.classList.remove('hov')); };
+      g.onclick = () => { tfeCurso = tfeCurso === g.dataset.tfc ? null : g.dataset.tfc; pintarLista(); };
+    });
+    $$('[data-tfk]', sec).forEach((b) => {
+      b.onclick = () => { tfeAb.add(b.dataset.tfk); pintarLista(); const d = $(`[data-tfb="${b.dataset.tfk}"]`, caja); if (d) d.scrollIntoView({ block: 'start', behavior: 'smooth' }); };
+    });
+    const q = $('#tfxQ', caja); if (q) q.onclick = () => { tfeCurso = null; pintarLista(); };
+    $$('.tfb', caja).forEach((d) => {
+      $('summary', d).onclick = (e) => {
+        e.preventDefault();
+        if (d.classList.contains('vacio')) return;
+        const v = d.dataset.tfb, y = $('#lista').scrollTop;
+        if (d.open) tfeAb.delete(v); else tfeAb.add(v);
+        if (tfeCurso && d.open) { d.open = false; return; }
+        pintarLista(); $('#lista').scrollTop = y;
+      };
+    });
+  }
+  // ---------- Cursos y seminarios recibidos (14/11/2026): resumen de toda la formación recibida ----------
+  // Se abre al pulsar el título «Cursos y seminarios recibidos» del menú de Formación (código g:cur).
+  // Los bloques son las opciones que van debajo de ese título en el menú, en su orden.
+  const CUR_COL = ['#F0997B', '#5DCAA5', '#FAC775', '#85B7EB', '#AFA9EC', '#ED93B1'];
+  let curAb = new Set(), curEpoca = null, curAnimar = true, curD = null;
+  const horasDe = (m) => { const v = campoTFE(m, 'Duración en horas'); const x = String(v).match(/\d+(?:[.,]\d+)?/); return x ? parseFloat(x[0].replace(',', '.')) : 0; };
+  const tituloCur = (m) => campoTFE(m, 'Título del curso/seminario') || campoTFE(m, 'Título de la formación') || m.t || '';
+  const entidadCur = (m) => campoTFE(m, 'Entidad organizadora') || campoTFE(m, 'Entidad de titulación') || '';
+  const anioCur = (m) => { const a = parseInt(m.anio, 10); return a > 1900 ? a : null; };
+  const fhC = (n) => n.toLocaleString('es-ES', { maximumFractionDigits: 1, useGrouping: 'always' });
+  const epocaDe = (a) => (a < 2000 ? '1990' : a < 2010 ? '2000' : a < 2020 ? '2010' : '2020');
+  const nomEpoca = { 1990: 'Años 90', 2000: '2000 – 2009', 2010: '2010 – 2019', 2020: 'Desde 2020' };
+  function bloquesCur() {
+    const f = MENU.find((x) => x[1] && x[1].some((o) => o[0] === 'g:cur'));
+    if (!f) return [];
+    const ops = f[1], i = ops.findIndex((o) => o[0] === 'g:cur'), out = [];
+    for (let k = i + 1; k < ops.length && ops[k][2] !== 'h'; k++) out.push({ c: ops[k][0], nom: ops[k][1], col: CUR_COL[out.length % CUR_COL.length] });
+    return out;
+  }
+  function datosCur() {
+    const B = bloquesCur().map((b) => { const l = entradasMenu(b.c); return { ...b, l, h: l.reduce((s, m) => s + horasDe(m), 0) }; });
+    const todos = B.flatMap((b, i) => b.l.map((m) => ({ m, i, a: anioCur(m), h: horasDe(m) })));
+    const anios = todos.map((x) => x.a).filter(Boolean);
+    const ent = new Map();
+    for (const x of todos) { const e = entidadCur(x.m).replace(/\s+/g, ' ').trim(); if (!e) continue; const k = e.toLowerCase().replace(/[.,;]+$/, ''); const v = ent.get(k) || { e, n: 0 }; v.n++; ent.set(k, v); }
+    const topEnt = [...ent.values()].sort((a, b) => b.n - a.n).filter((x) => x.n > 1).slice(0, 5);
+    const epocas = [...new Set(anios.map(epocaDe))].sort();
+    return { B, todos, desde: Math.min(...anios), hasta: Math.max(...anios), horas: B.reduce((s, b) => s + b.h, 0), n: todos.length, nEnt: ent.size, topEnt, epocas };
+  }
+  function htmlCur() {
+    const D = (curD = datosCur());
+    if (!D.B.length) return '<p class="cuenta">No hay apartados debajo de este título en el menú.</p>';
+    const an = curAnimar ? ' anima' : '';
+    const maxH = Math.max(1, ...D.B.map((b) => b.h));
+    const kp = (n, t, dec) => `<div class="crx-kp"><b data-cuenta="${n}"${dec ? ' data-mil="1"' : ''}>${curAnimar ? 0 : dec ? fhC(n) : n}</b><span>${t}</span></div>`;
+    const tipos = D.B.map((b, i) => `<button class="crx-ty" data-crk="${i}" style="--c:${b.col}"><span class="crx-ty-n"><i></i>${esc(b.nom)}</span><b>${b.l.length}</b><em>${fhC(b.h)} h</em><span class="crx-ty-b"><span style="width:${Math.max(2, (b.h / maxH) * 100).toFixed(1)}%"></span></span></button>`).join('');
+    const ents = D.topEnt.length ? D.topEnt.map((x) => `<li><span>${esc(x.e)}</span><b>${x.n}</b></li>`).join('') : '<li><span>Sin entidades repetidas</span></li>';
+    // Línea del tiempo: un punto por curso, del tamaño de sus horas
+    const W = 1200, H = 215, base = 178, iz = 18, de = 18;
+    const x = (a) => (D.hasta === D.desde ? W / 2 : iz + ((a - D.desde) / (D.hasta - D.desde)) * (W - iz - de));
+    const maxh = Math.max(1, ...D.todos.map((t) => t.h));
+    const rad = (h) => 3.4 + 7.6 * Math.sqrt((h || 1) / maxh);
+    const porA = new Map(); D.todos.filter((t) => t.a).forEach((t) => { if (!porA.has(t.a)) porA.set(t.a, []); porA.get(t.a).push(t); });
+    let puntos = '';
+    for (const [a, l] of porA) {
+      l.sort((p, q) => q.h - p.h);
+      const rm = Math.max(...l.map((t) => rad(t.h))), alto = base - 14, porCol = Math.max(1, Math.floor(alto / (rm * 2 + 1.5)));
+      const ncol = Math.ceil(l.length / porCol);
+      l.forEach((t, k) => {
+        const col = Math.floor(k / porCol), fila = k % porCol;
+        const cx = x(a) + (col - (ncol - 1) / 2) * (rm * 2 + 1.5), cy = base - 6 - rm - fila * (rm * 2 + 1.5);
+        const fuera = curEpoca && epocaDe(a) !== curEpoca;
+        puntos += `<circle class="crx-p${fuera ? ' dim' : ''}" data-crm="${t.m.id}" data-crb="${t.i}" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rad(t.h).toFixed(1)}" fill="${D.B[t.i].col}" style="--d:${((a - D.desde) * 0.025 + fila * 0.02).toFixed(2)}s"/>`;
+      });
+    }
+    const marcas = []; for (let a = Math.ceil(D.desde / 5) * 5; a <= D.hasta; a += 5) marcas.push(a);
+    if (!marcas.includes(D.desde)) marcas.unshift(D.desde); if (!marcas.includes(D.hasta)) marcas.push(D.hasta);
+    const eje = `<line x1="${iz}" x2="${W - de}" y1="${base}" y2="${base}" class="crx-eje"/>` + marcas.filter((a, i, l) => i === 0 || i === l.length - 1 || (a - l[0] > 2 && l[l.length - 1] - a > 2)).map((a) => `<line x1="${x(a)}" x2="${x(a)}" y1="${base}" y2="${base + 6}" class="crx-eje"/><text x="${x(a)}" y="${base + 26}" text-anchor="middle" class="crx-ax">${a}</text>`).join('');
+    const chips = `<div class="crx-ch"><button class="${curEpoca ? '' : 'on'}" data-cre="">Todo</button>${D.epocas.map((e) => `<button class="${curEpoca === e ? 'on' : ''}" data-cre="${e}">${nomEpoca[e]}</button>`).join('')}</div>`;
+    const panel = `<section class="crx${an}">
+      <div class="crx-cab"><div><p class="tfx-sup">FORMACIÓN RECIBIDA · ${D.desde} – ${D.hasta}</p><h3>${D.n} cursos y seminarios, ${fhC(D.horas)} horas de formación</h3></div>
+        <div class="crx-kps">${kp(D.n, 'cursos')}${kp(D.horas, 'horas', true)}${kp(D.hasta - D.desde + 1, 'años')}${kp(D.nEnt, 'entidades')}</div></div>
+      <div class="crx-g">
+        <div class="crx-box"><p class="crx-lab">Horas por tipo de curso</p>${tipos}</div>
+        <div class="crx-box"><p class="crx-lab">Entidades que más se repiten</p><ol class="crx-en">${ents}</ol></div>
+      </div>
+      <div class="crx-box crx-tl"><div class="crx-tl-c"><p class="crx-lab">Línea del tiempo · cada punto es un curso; cuanto más grande, más horas</p>${chips}</div>
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Cursos por año">${eje}${puntos}</svg>
+        <div class="crx-inf" id="crxInf">Pasa por un punto para ver el curso; púlsalo para ir a su ficha.</div></div>
+    </section>`;
+    const bloques = D.B.map((b, i) => {
+      const l = curEpoca ? b.l.filter((m) => anioCur(m) && epocaDe(anioCur(m)) === curEpoca) : b.l;
+      const as = b.l.map(anioCur).filter(Boolean), r = as.length ? (Math.min(...as) === Math.max(...as) ? `${Math.min(...as)}` : `${Math.min(...as)} – ${Math.max(...as)}`) : '';
+      const hl = l.reduce((s, m) => s + horasDe(m), 0);
+      const abierto = l.length && (curAb.has(i) || (curEpoca && l.length));
+      numVista = new Map(l.map((m, k) => [m.id, k + 1]));
+      const html = abierto ? l.map(htmlMerito).join('') : '';
+      numVista = null;
+      return `<details class="tfb ${l.length ? '' : 'vacio'}" data-crb="${i}" style="--c:${b.col}" ${abierto ? 'open' : ''}><summary><i></i><span class="tfb-t">${esc(b.nom)}</span><span class="tfb-r">${curEpoca ? (l.length ? `${nomEpoca[curEpoca]} · ${fhC(hl)} h` : `ninguno en ${nomEpoca[curEpoca].toLowerCase()}`) : `${r} · ${fhC(hl)} h`}</span><b>${l.length}</b><span class="tfb-fl" aria-hidden="true"></span></summary><div class="tfb-l">${html}</div></details>`;
+    }).join('');
+    return panel + `<div class="tfb-s">${bloques}</div>`;
+  }
+  function ligarCur(caja) {
+    const sec = $('.crx', caja); if (!sec) return;
+    const inf = $('#crxInf', sec), base = inf.innerHTML, D = curD;
+    if (curAnimar) {
+      curAnimar = false;
+      $$('[data-cuenta]', sec).forEach((e) => {
+        const fin = +e.dataset.cuenta, mil = e.dataset.mil, t0 = performance.now(), dur = 1000;
+        const fmt = (v) => (mil ? fhC(Math.round(v)) : Math.round(v));
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { e.textContent = mil ? fhC(fin) : fin; return; }
+        const paso = (t) => { const p = Math.min(1, (t - t0) / dur); e.textContent = p < 1 ? fmt(fin * (1 - Math.pow(1 - p, 3))) : mil ? fhC(fin) : fin; if (p < 1) requestAnimationFrame(paso); };
+        requestAnimationFrame(paso);
+      });
+      setTimeout(() => sec.classList.remove('anima'), 2000);
+    }
+    const abrirEn = (i, id) => {
+      curAb.add(+i); pintarLista();
+      const d = $(`details[data-crb="${i}"]`, caja); if (!d) return;
+      const e = id && $(`.merito[data-id="${id}"]`, d);
+      (e || d).scrollIntoView({ block: e ? 'center' : 'start', behavior: 'smooth' });
+      if (e) { e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2500); }
+    };
+    $$('.crx-p', sec).forEach((p) => {
+      const t = D.todos.find((x) => String(x.m.id) === p.dataset.crm);
+      p.onmouseenter = () => { inf.innerHTML = `<b>${esc(tituloCur(t.m))}</b><br><span class="tfx-pt"><i style="background:${D.B[t.i].col}"></i>${esc(D.B[t.i].nom)}</span>${t.a ? ` · ${t.a}` : ''}${t.h ? ` · ${fhC(t.h)} h` : ''}${entidadCur(t.m) ? ` · ${esc(entidadCur(t.m))}` : ''}`; p.classList.add('hov'); };
+      p.onmouseleave = () => { inf.innerHTML = base; p.classList.remove('hov'); };
+      p.onclick = () => abrirEn(p.dataset.crb, t.m.id);
+    });
+    $$('[data-crk]', sec).forEach((b) => (b.onclick = () => abrirEn(b.dataset.crk)));
+    $$('[data-cre]', sec).forEach((b) => (b.onclick = () => { curEpoca = b.dataset.cre || null; pintarLista(); }));
+    $$('details[data-crb]', caja).forEach((d) => {
+      $('summary', d).onclick = (e) => {
+        e.preventDefault();
+        if (d.classList.contains('vacio')) return;
+        const i = +d.dataset.crb, y = $('#lista').scrollTop;
+        if (d.open) curAb.delete(i); else curAb.add(i);
+        if (curEpoca && d.open) { d.open = false; return; }
+        pintarLista(); $('#lista').scrollTop = y;
+      };
+    });
+  }
+  // ---------- Cursos, material e innovación (14/11/2026): resumen de la docencia más allá de las clases ----------
+  // Se abre al pulsar el título «Cursos, material e innovación» del menú de Docencia (código g:cmi).
+  // Los bloques son las opciones de debajo de ese título en el menú; se agrupan en tres ejes.
+  const CMI_EJES = [
+    { k: 'f', nom: 'Formar', sub: 'Tutorías, cursos y seminarios', col: '#5DCAA5', cods: ['4.3', '4.4'] },
+    { k: 'm', nom: 'Crear material', sub: 'Publicaciones, libros y material en abierto', col: '#85B7EB', cods: ['4.5', 'v:libros_doc', 'v:digitum'] },
+    { k: 'i', nom: 'Innovar', sub: 'Proyectos, grupo y aportaciones', col: '#F0997B', cods: [] },
+  ];
+  let cmiAb = new Set(), cmiAnio = null, cmiAnimar = true, cmiD = null;
+  function bloquesDeTitulo(cod) {
+    const f = MENU.find((x) => x[1] && x[1].some((o) => o[0] === cod)); if (!f) return [];
+    const ops = f[1], i = ops.findIndex((o) => o[0] === cod), out = [];
+    for (let k = i + 1; k < ops.length && ops[k][2] !== 'h'; k++) out.push({ c: ops[k][0], nom: ops[k][1] });
+    return out;
+  }
+  const anioCmi = (m) => { const a = parseInt(m.anio, 10); if (a > 1900) return a; const f = campoTFE(m, 'Fecha') || campoTFE(m, 'Fecha de inicio-fin') || ''; const y = f.match(/(19|20)\d{2}/); return y ? +y[0] : null; };
+  function datosCmi() {
+    const B = bloquesDeTitulo('g:cmi').map((b) => {
+      const e = CMI_EJES.findIndex((x) => x.cods.includes(b.c)); const ej = e < 0 ? 2 : e;
+      return { ...b, ej, col: CMI_EJES[ej].col, l: entradasMenu(b.c) };
+    });
+    const ejes = CMI_EJES.map((e, i) => ({ ...e, B: B.map((b, k) => ({ ...b, k })).filter((b) => b.ej === i) }));
+    ejes.forEach((e) => (e.n = e.B.reduce((s, b) => s + b.l.length, 0)));
+    const todos = B.flatMap((b, k) => b.l.map((m) => ({ m, k, ej: b.ej, a: anioCmi(m) })));
+    const as = todos.map((t) => t.a).filter(Boolean);
+    const desde = Math.min(...as), hasta = Math.max(...as);
+    const celda = {}; for (const t of todos) if (t.a) { const c = (celda[t.a] = celda[t.a] || [0, 0, 0]); c[t.ej]++; }
+    // Destacados, sacados de las propias fichas
+    const de = (c) => (B.find((b) => b.c === c) || { l: [] }).l;
+    const dest = [];
+    const pr = de('4.6'); if (pr.length) { const ip = pr.filter((m) => /principal|coordinador/i.test(campoTFE(m, 'Tipo de participación'))).length; dest.push([`${ip} de ${pr.length}`, 'proyectos de innovación docente como investigador principal o coordinador']); }
+    const gid = de('v:gid'); const coord = gid.find((m) => /coordinador/i.test(campoTFE(m, 'Papel')) || /coordinador/i.test(m.t)); if (coord) { const n = (coord.t.match(/n[ºo°]\s*(\d+)/i) || [])[1]; dest.push(['Coordinador', `del Grupo de Innovación Docente${n ? ` nº ${n}` : ''} de la Universidad de Murcia`]); }
+    const dg = de('v:digitum'); if (dg.length) dest.push([String(dg.length), 'materiales docentes en abierto en Digitum']);
+    const pub = de('4.5').length + de('v:libros_doc').length; if (pub) dest.push([String(pub), `publicaciones docentes, ${de('v:libros_doc').length} de ellas libros`]);
+    const cu = de('4.4'); if (cu.length) { const h = cu.reduce((s, m) => s + (parseFloat(String(campoTFE(m, 'Horas impartidas')).replace(',', '.')) || 0), 0); dest.push([String(cu.length), `cursos y seminarios impartidos${h ? ` (${fhC(h)} h)` : ''}`]); }
+    return { B, ejes, todos, desde, hasta, celda, dest, n: todos.length };
+  }
+  function htmlCmi() {
+    const D = (cmiD = datosCmi());
+    if (!D.B.length) return '<p class="cuenta">No hay apartados debajo de este título en el menú.</p>';
+    const an = cmiAnimar ? ' anima' : '';
+    // Tres ejes, cada uno con sus apartados como teselas
+    const ejes = D.ejes.map((e, i) => `<div class="cmi-ej" style="--c:${e.col};--d:${(i * 0.1).toFixed(1)}s">
+        <div class="cmi-ej-c"><b data-cuenta="${e.n}">${cmiAnimar ? 0 : e.n}</b><div><span>${esc(e.nom)}</span><small>${esc(e.sub)}</small></div></div>
+        <div class="cmi-ts">${e.B.map((b) => `<button class="cmi-t ${b.l.length ? '' : 'vacio'}" data-cmk="${b.k}"><b>${b.l.length}</b><span>${esc(b.nom)}</span></button>`).join('')}</div></div>`).join('');
+    // Mapa de calor: ejes × años
+    const anios = []; for (let a = D.desde; a <= D.hasta; a++) anios.push(a);
+    const max = Math.max(1, ...Object.values(D.celda).flat());
+    const filas = D.ejes.map((e, i) => `<div class="cmi-fl"><span class="cmi-fl-n" style="--c:${e.col}">${esc(e.nom)}</span><div class="cmi-cs" style="grid-template-columns:repeat(${anios.length},minmax(0,1fr))">${anios.map((a, k) => { const n = (D.celda[a] || [0, 0, 0])[i]; const op = n ? 0.25 + 0.75 * Math.sqrt(n / max) : 0; return `<span class="cmi-c ${n ? 'si' : ''} ${cmiAnio && cmiAnio !== a ? 'dim' : ''} ${cmiAnio === a ? 'on' : ''}" data-cma="${a}" style="--o:${op.toFixed(2)};--c:${e.col};--d:${(k * 0.012 + i * 0.05).toFixed(3)}s">${n > 1 ? n : ''}</span>`; }).join('')}</div></div>`).join('');
+    const marcas = `<div class="cmi-fl cmi-ej-x"><span class="cmi-fl-n"></span><div class="cmi-cs" style="grid-template-columns:repeat(${anios.length},minmax(0,1fr))">${anios.map((a) => `<span>${a % 5 === 0 || a === D.desde || a === D.hasta ? a : ''}</span>`).join('')}</div></div>`;
+    const dest = D.dest.map(([n, t]) => `<li><b>${esc(n)}</b><span>${esc(t)}</span></li>`).join('');
+    const panel = `<section class="crx cmi${an}">
+      <div class="crx-cab"><div><p class="tfx-sup">DOCENCIA MÁS ALLÁ DEL AULA · ${D.desde} – ${D.hasta}</p><h3>${D.n} méritos para formar, crear material e innovar</h3></div></div>
+      <div class="cmi-ejs">${ejes}</div>
+      <div class="cmi-g">
+        <div class="crx-box"><div class="crx-tl-c"><p class="crx-lab">Año a año · cuanto más intenso el color, más méritos</p>${cmiAnio ? `<button class="cmi-x" id="cmiQ">Ver todos los años ×</button>` : ''}</div>${filas}${marcas}
+          <div class="crx-inf" id="cmiInf">${cmiAnio ? infoCmi(cmiAnio) : 'Pasa por una casilla para ver ese año; púlsala para ver solo sus méritos.'}</div></div>
+        <div class="crx-box"><p class="crx-lab">Para destacar</p><ul class="cmi-de">${dest}</ul></div>
+      </div>
+    </section>`;
+    const filtro = cmiAnio ? `<div class="tfx-fil">Año ${cmiAnio} <button id="cmiQ2" aria-label="Ver todos los años">Ver todos ×</button></div>` : '';
+    const bloques = D.ejes.map((e) => `<p class="cmi-gt" style="--c:${e.col}"><i></i>${esc(e.nom)}<span>${e.n}</span></p>` + e.B.map((b) => {
+      const l = cmiAnio ? b.l.filter((m) => anioCmi(m) === cmiAnio) : b.l;
+      const as = b.l.map(anioCmi).filter(Boolean), r = as.length ? (Math.min(...as) === Math.max(...as) ? `${Math.min(...as)}` : `${Math.min(...as)} – ${Math.max(...as)}`) : '';
+      const abierto = l.length && (cmiAb.has(b.k) || (cmiAnio && l.length));
+      numVista = new Map(l.map((m, k) => [m.id, k + 1]));
+      const html = abierto ? l.map(htmlMerito).join('') : '';
+      numVista = null;
+      return `<details class="tfb ${l.length ? '' : 'vacio'}" data-cmb="${b.k}" style="--c:${b.col}" ${abierto ? 'open' : ''}><summary><i></i><span class="tfb-t">${esc(b.nom)}</span><span class="tfb-r">${cmiAnio ? (l.length ? `en ${cmiAnio}` : `ninguno en ${cmiAnio}`) : r}</span><b>${l.length}</b><span class="tfb-fl" aria-hidden="true"></span></summary><div class="tfb-l">${html}</div></details>`;
+    }).join('')).join('');
+    return panel + filtro + `<div class="tfb-s">${bloques}</div>`;
+  }
+  function infoCmi(a) {
+    const D = cmiD, l = D.todos.filter((t) => t.a === a); if (!l.length) return `<b>${a}</b> · sin méritos ese año`;
+    const por = D.B.map((b, k) => [b, l.filter((t) => t.k === k).length]).filter(([, n]) => n);
+    return `<b>${a}</b> · ${l.length} ${l.length === 1 ? 'mérito' : 'méritos'}<br>${por.map(([b, n]) => `<span class="tfx-pt"><i style="background:${b.col}"></i><b>${n}</b>&nbsp;${esc(b.nom)}</span>`).join('')}`;
+  }
+  function ligarCmi(caja) {
+    const sec = $('.cmi', caja); if (!sec) return;
+    const inf = $('#cmiInf', sec), base = inf.innerHTML;
+    if (cmiAnimar) {
+      cmiAnimar = false;
+      $$('[data-cuenta]', sec).forEach((e) => {
+        const fin = +e.dataset.cuenta, t0 = performance.now(), dur = 900;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { e.textContent = fin; return; }
+        const paso = (t) => { const p = Math.min(1, (t - t0) / dur); e.textContent = Math.round(fin * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(paso); };
+        requestAnimationFrame(paso);
+      });
+      setTimeout(() => sec.classList.remove('anima'), 1800);
+    }
+    $$('.cmi-c', sec).forEach((c) => {
+      c.onmouseenter = () => { inf.innerHTML = infoCmi(+c.dataset.cma); $$(`.cmi-c[data-cma="${c.dataset.cma}"]`, sec).forEach((x) => x.classList.add('hov')); };
+      c.onmouseleave = () => { inf.innerHTML = base; $$('.cmi-c.hov', sec).forEach((x) => x.classList.remove('hov')); };
+      c.onclick = () => { const a = +c.dataset.cma; cmiAnio = cmiAnio === a ? null : a; pintarLista(); };
+    });
+    $$('[data-cmk]', sec).forEach((b) => (b.onclick = () => {
+      if (b.classList.contains('vacio')) return;
+      cmiAb.add(+b.dataset.cmk); pintarLista();
+      const d = $(`details[data-cmb="${b.dataset.cmk}"]`, caja); if (d) d.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }));
+    [$('#cmiQ', caja), $('#cmiQ2', caja)].forEach((q) => { if (q) q.onclick = () => { cmiAnio = null; pintarLista(); }; });
+    $$('details[data-cmb]', caja).forEach((d) => {
+      $('summary', d).onclick = (e) => {
+        e.preventDefault();
+        if (d.classList.contains('vacio')) return;
+        const k = +d.dataset.cmb, y = $('#lista').scrollTop;
+        if (d.open) cmiAb.delete(k); else cmiAb.add(k);
+        if (cmiAnio && d.open) { d.open = false; return; }
+        pintarLista(); $('#lista').scrollTop = y;
+      };
+    });
+  }
+  // ---------- Dirección de tesis doctorales (14/11/2026): el abanico de doctores y tribunales ----------
+  // Se abre al pulsar el título «Dirección de tesis doctorales» del menú de Investigación (código g:dtd).
+  let dtdAb = new Set(), dtdAnimar = true, dtdD = null;
+  const libreDtd = (m) => m.filas.flat().filter((p) => !p.e).map((p) => p.v).join(' ');
+  function uniDtd(s) {
+    s = String(s || '');
+    if (/pa[ií]s vasco/i.test(s)) return 'Universidad del País Vasco';
+    if (/costa rica/i.test(s)) return 'Universidad Nacional de Costa Rica';
+    if (/granada/i.test(s)) return 'Universidad de Granada';
+    if (/almer[ií]a/i.test(s)) return 'Universidad de Almería';
+    if (/extremadura/i.test(s)) return 'Universidad de Extremadura';
+    if (/valencia/i.test(s)) return 'Universitat de València';
+    if (/pernambuco|para[ií]ba/i.test(s)) return 'Universidade de Pernambuco (Brasil)';
+    if (/murcia/i.test(s)) return 'Universidad de Murcia';
+    const u = s.match(/Universi(dad|dade|tat)[^.,;]*/); return u ? u[0].trim() : '';
+  }
+  function nombreCorto(n) {
+    const w = n.trim().split(/\s+/), part = /^(de|del|la|las|los|y)$/i, np = w.filter((x) => !part.test(x)).length;
+    let i = 1, nombre = w[0];
+    if (np >= 4 && w[1] && !part.test(w[1])) { nombre += ' ' + w[1][0] + '.'; i = 2; }
+    let ap = ''; while (i < w.length && part.test(w[i])) ap += w[i++] + ' ';
+    return (nombre + ' ' + ap + (w[i] || '')).trim();
+  }
+  const extranjera = (u) => /costa rica|brasil|pernambuco/i.test(u);
+  const enCursoDtd = (m) => m.vista === 'tesis_curso' || (/en direcci[oó]n/i.test(m.t) && !campoTFE(m, 'Fecha de defensa'));
+  function datosDtd() {
+    const B = bloquesDeTitulo('g:dtd').map((b, k) => ({ ...b, k, l: entradasMenu(b.c) }));
+    const esTrib = (b) => /trib/i.test(b.c);
+    const tesis = B.filter((b) => !esTrib(b) && /tesis/i.test(b.c)).flatMap((b) => b.l.map((m) => ({ m, k: b.k })));
+    const trib = B.filter(esTrib).flatMap((b) => b.l.map((m) => ({ m, k: b.k })));
+    for (const t of tesis) {
+      const m = t.m;
+      t.a = anioCmi(m); t.curso = enCursoDtd(m);
+      t.nom = campoTFE(m, 'Alumno/a') || campoTFE(m, 'Doctorando/a') || '';
+      t.tit = (campoTFE(m, 'Título del trabajo') || m.t).replace(/^Tesis( en direcci[oó]n)?\s*-\s*/i, '');
+      t.uni = uniDtd(campoTFE(m, 'Entidad de realización'));
+      t.cum = /cum laude/i.test(campoTFE(m, 'Calificación obtenida'));
+      t.cal = campoTFE(m, 'Calificación obtenida');
+      t.co = campoTFE(m, 'Codirector/a tesis') || (/co-?direc/i.test(campoTFE(m, 'Explicación narrativa')) ? 'sí' : '');
+      t.int = /s[ií]/i.test(campoTFE(m, 'Doctorado Europeo / Internacional'));
+    }
+    tesis.sort((p, q) => (p.curso - q.curso) || (p.a || 9999) - (q.a || 9999));
+    for (const t of trib) {
+      const m = t.m, tx = libreDtd(m);
+      t.a = anioCmi(m); t.cargo = campoTFE(m, 'Cargo en el tribunal') || '';
+      t.nom = (tx.match(/(?:DOCTORANDO|ALUMNO):\s*(?:D\.\s*)?([^.]+(?:\.[^A-Z:]*)?)\./) || [])[1] || '';
+      t.tit = (tx.match(/T[ÍI]TULO:\s*[“"]?([^.]+)/) || [])[1] || campoTFE(m, 'Título del trabajo') || (tx.length < 160 ? tx : '') || m.t;
+      t.uni = /pernambuco|para[ií]ba|brasil|costa rica/i.test(tx) ? uniDtd(tx) : uniDtd((tx.match(/UNIVERSIDAD:\s*([^.]+)/) || [])[1] || tx);
+    }
+    trib.sort((p, q) => (p.a || 9999) - (q.a || 9999));
+    const def = tesis.filter((t) => !t.curso);
+    const unis = new Map(); for (const t of def) { const u = t.uni || 'Sin universidad indicada'; unis.set(u, (unis.get(u) || 0) + 1); }
+    const as = [...tesis, ...trib].map((t) => t.a).filter(Boolean);
+    return { B, tesis, trib, def, unis: [...unis].sort((a, b) => (a[0].startsWith('Sin') - b[0].startsWith('Sin')) || b[1] - a[1]),
+      cum: def.filter((t) => t.cum).length, co: def.filter((t) => t.co).length, ext: def.filter((t) => extranjera(t.uni)).length,
+      pres: trib.filter((t) => /presidente/i.test(t.cargo)).length, tribExt: trib.filter((t) => extranjera(t.uni)).length,
+      desde: Math.min(...as), hasta: Math.max(...as) };
+  }
+  const colTesis = (t) => (t.curso ? '#FAC775' : extranjera(t.uni) ? '#F0997B' : t.uni && !/murcia/i.test(t.uni) ? '#85B7EB' : '#5DCAA5');
+  function htmlDtd() {
+    const D = (dtdD = datosDtd());
+    if (!D.B.length) return '<p class="cuenta">No hay apartados debajo de este título en el menú.</p>';
+    const an = dtdAnimar ? ' anima' : '';
+    const kp = (n, t) => `<div class="crx-kp"><b data-cuenta="${n}">${dtdAnimar ? 0 : n}</b><span>${t}</span></div>`;
+    // Abanico: centro abajo; tesis en el arco exterior, tribunales en el interior, de izquierda (antiguo) a derecha (reciente)
+    const W = 1200, H = 500, cx = W / 2, cy = 470, R1 = 300, R2 = 175;
+    const pos = (i, n, R) => { const ang = Math.PI * (1 - (n === 1 ? 0.5 : 0.06 + (0.88 * i) / (n - 1))); return [cx + R * Math.cos(ang), cy - R * Math.sin(ang), ang]; };
+    let lin = '', nod = '';
+    D.tesis.forEach((t, i) => {
+      const [x, y, ang] = pos(i, D.tesis.length, R1), col = colTesis(t), d = (0.15 + i * 0.05).toFixed(2);
+      lin += `<path class="dtd-l" d="M${cx},${cy} Q${(cx + (x - cx) * 0.45).toFixed(1)},${(cy - 40 - (cy - y) * 0.25).toFixed(1)} ${x.toFixed(1)},${y.toFixed(1)}" stroke="${col}" style="--d:${d}s"${t.curso ? ' stroke-dasharray="5 5"' : ''}/>`;
+      const deg = (ang * 180) / Math.PI, izq = Math.cos(ang) < -0.001, lx = x + Math.cos(ang) * 28, ly = y - Math.sin(ang) * 28;
+      const rot = izq ? 180 - deg : -deg;
+      nod += `<g class="dtd-n" data-dt="t${i}" style="--d:${d}s" tabindex="0"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="19" fill="${col}"${t.curso ? ' fill-opacity=".25" stroke="' + col + '" stroke-width="2" stroke-dasharray="4 3"' : ''}/>${t.int ? `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="24" fill="none" stroke="${col}" stroke-width="1.5"/>` : ''}<text x="${x.toFixed(1)}" y="${(y + 4.5).toFixed(1)}" text-anchor="middle" class="dtd-y${t.curso ? ' c' : ''}">${t.a ? "'" + String(t.a).slice(2) : '?'}</text><text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" dy="4.5" text-anchor="${izq ? 'end' : 'start'}" transform="rotate(${rot.toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})" class="dtd-nm${t.nom ? '' : ' sin'}">${esc(t.nom ? nombreCorto(t.nom) : 'sin nombre en la ficha')}</text></g>`;
+    });
+    D.trib.forEach((t, i) => {
+      const [x, y] = pos(i, D.trib.length, R2), d = (0.4 + i * 0.06).toFixed(2), p = /presidente/i.test(t.cargo);
+      lin += `<line class="dtd-l t" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" style="--d:${d}s"/>`;
+      nod += `<g class="dtd-n tr" data-dt="r${i}" style="--d:${d}s" tabindex="0"><polygon points="${x.toFixed(1)},${(y - 16).toFixed(1)} ${(x + 16).toFixed(1)},${y.toFixed(1)} ${x.toFixed(1)},${(y + 16).toFixed(1)} ${(x - 16).toFixed(1)},${y.toFixed(1)}" fill="${p ? '#AFA9EC' : '#3d5f8a'}" stroke-linejoin="round"/><text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" class="dtd-y">${t.a ? "'" + String(t.a).slice(2) : '?'}</text></g>`;
+    });
+    nod += `<g class="dtd-c"><circle cx="${cx}" cy="${cy}" r="34"/><text x="${cx}" y="${cy + 6}" text-anchor="middle">JPO</text></g>`;
+    const ley = `<div class="dtd-ley"><span><i style="background:#5DCAA5"></i>Tesis en la Universidad de Murcia</span><span><i style="background:#85B7EB"></i>En otras universidades españolas o sin universidad indicada</span><span><i style="background:#F0997B"></i>En el extranjero</span><span><i class="o" style="border-color:#FAC775"></i>En dirección</span><span><i class="r" style="background:#AFA9EC"></i>Tribunal como presidente</span><span><i class="r" style="background:#3d5f8a"></i>Tribunal como vocal</span></div>`;
+    const unis = D.unis.map(([u, n]) => `<li class="${u.startsWith('Sin') ? 'sin' : ''}"><span>${esc(u)}</span><b>${n}</b></li>`).join('');
+    const panel = `<section class="crx dtd${an}">
+      <div class="crx-cab"><div><p class="tfx-sup">ESCUELA DE DOCTORES · ${D.desde} – ${D.hasta}</p><h3>${D.def.length} tesis doctorales dirigidas${D.tesis.length > D.def.length ? ` y ${D.tesis.length - D.def.length} en dirección` : ''}</h3></div>
+        <div class="crx-kps">${kp(D.cum, 'cum laude')}${kp(D.co, 'codirigidas')}${kp(D.unis.filter(([u]) => !u.startsWith('Sin')).length, 'universidades')}${kp(D.trib.length, 'tribunales')}</div></div>
+      <div class="crx-box dtd-ab"><div class="crx-tl-c"><p class="crx-lab">Arco exterior: tesis dirigidas · arco interior: tribunales de tesis · de la más antigua (izquierda) a la más reciente</p></div>
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tesis dirigidas y tribunales de tesis">${lin}${nod}</svg>${ley}
+        <div class="crx-inf" id="dtdInf">Pasa por un punto para ver la tesis; púlsalo para ir a su ficha.</div></div>
+      <div class="cmi-g">
+        <div class="crx-box"><p class="crx-lab">Dónde se defendieron</p><ol class="crx-en dtd-u">${unis}</ol></div>
+        <div class="crx-box"><p class="crx-lab">Para destacar</p><ul class="cmi-de">
+          <li><b>${D.cum} de ${D.def.length}</b><span>tesis con sobresaliente cum laude</span></li>
+          ${D.ext ? `<li><b>${D.ext}</b><span>${D.ext === 1 ? 'tesis dirigida' : 'tesis dirigidas'} en el extranjero</span></li>` : ''}
+          ${D.trib.length ? `<li><b>${D.pres}</b><span>${D.pres === 1 ? 'vez' : 'veces'} presidente de tribunal de tesis${D.tribExt ? `; ${D.tribExt} ${D.tribExt === 1 ? 'tribunal' : 'tribunales'} en el extranjero` : ''}</span></li>` : ''}
+          <li><b>${D.hasta - Math.min(...D.def.map((t) => t.a).filter(Boolean)) + 1}</b><span>años dirigiendo tesis, desde ${Math.min(...D.def.map((t) => t.a).filter(Boolean))}</span></li>
+        </ul></div>
+      </div>
+    </section>`;
+    const bloques = D.B.map((b) => {
+      const abierto = b.l.length && dtdAb.has(b.k);
+      const as = b.l.map(anioCmi).filter(Boolean), r = as.length ? (Math.min(...as) === Math.max(...as) ? `${Math.min(...as)}` : `${Math.min(...as)} – ${Math.max(...as)}`) : '';
+      numVista = new Map(b.l.map((m, k) => [m.id, k + 1]));
+      const html = abierto ? b.l.map(htmlMerito).join('') : '';
+      numVista = null;
+      const col = /trib/i.test(b.c) ? '#AFA9EC' : /curso/i.test(b.c) ? '#FAC775' : /formacion/i.test(b.c) ? '#85B7EB' : '#5DCAA5';
+      return `<details class="tfb ${b.l.length ? '' : 'vacio'}" data-dtb="${b.k}" style="--c:${col}" ${abierto ? 'open' : ''}><summary><i></i><span class="tfb-t">${esc(b.nom)}</span><span class="tfb-r">${b.l.length ? r : 'sin entradas'}</span><b>${b.l.length}</b><span class="tfb-fl" aria-hidden="true"></span></summary><div class="tfb-l">${html}</div></details>`;
+    }).join('');
+    return panel + `<div class="tfb-s">${bloques}</div>`;
+  }
+  function ligarDtd(caja) {
+    const sec = $('.dtd', caja); if (!sec) return;
+    const inf = $('#dtdInf', sec), base = inf.innerHTML, D = dtdD;
+    if (dtdAnimar) {
+      dtdAnimar = false;
+      $$('[data-cuenta]', sec).forEach((e) => {
+        const fin = +e.dataset.cuenta, t0 = performance.now(), dur = 900;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { e.textContent = fin; return; }
+        const paso = (t) => { const p = Math.min(1, (t - t0) / dur); e.textContent = Math.round(fin * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(paso); };
+        requestAnimationFrame(paso);
+      });
+      setTimeout(() => sec.classList.remove('anima'), 2400);
+    }
+    const de = (k) => (k[0] === 't' ? D.tesis : D.trib)[+k.slice(1)];
+    const info = (k) => {
+      const t = de(k);
+      if (k[0] === 't') return `<b>${esc(t.nom || 'Doctorando/a sin nombre en la ficha')}</b> · ${t.curso ? 'en dirección' : t.a || ''}${t.uni ? ` · ${esc(t.uni)}` : ''}<br>${esc(t.tit)}${t.cal ? `<br><span class="tfx-pt">${esc(t.cal)}</span>` : ''}${t.co && t.co !== 'sí' ? `<span class="tfx-pt">Codirección: ${esc(t.co)}</span>` : t.co ? '<span class="tfx-pt">Codirigida</span>' : ''}${t.int ? '<span class="tfx-pt">Mención internacional</span>' : ''}`;
+      return `<b>Tribunal de tesis</b> · ${esc(t.cargo || 'miembro')}${t.a ? ` · ${t.a}` : ''}${t.uni ? ` · ${esc(t.uni)}` : ''}<br>${esc(t.tit)}${t.nom ? `<br><span class="tfx-pt">Doctorando/a: ${esc(t.nom)}</span>` : ''}`;
+    };
+    $$('.dtd-n', sec).forEach((g) => {
+      const k = g.dataset.dt;
+      g.onmouseenter = g.onfocus = () => { inf.innerHTML = info(k); sec.classList.add('foco'); g.classList.add('hov'); };
+      g.onmouseleave = g.onblur = () => { inf.innerHTML = base; sec.classList.remove('foco'); g.classList.remove('hov'); };
+      g.onclick = () => {
+        const t = de(k); dtdAb.add(t.k); pintarLista();
+        const e = $(`.merito[data-id="${t.m.id}"]`, caja); if (!e) return;
+        e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2500);
+      };
+    });
+    $$('details[data-dtb]', caja).forEach((d) => {
+      $('summary', d).onclick = (e) => {
+        e.preventDefault(); if (d.classList.contains('vacio')) return;
+        const k = +d.dataset.dtb, y = $('#lista').scrollTop;
+        if (d.open) dtdAb.delete(k); else dtdAb.add(k);
+        pintarLista(); $('#lista').scrollTop = y;
+      };
+    });
+  }
+  // ---------- Producción científica (14/11/2026): ritmo de publicación, impacto y autoría ----------
+  // Se abre al pulsar el título «Producción científica» del menú de Investigación (código g:pc).
+  // Usa los mismos datos que «Artículos»: OpenAlex (citas, autoría) y SCImago SJR (cuartil en el año de publicación).
+  let pcAb = new Set(), pcAnio = null, pcAnimar = true, pcD = null;
+  const PC_Q = [['Q1', '#5DCAA5'], ['Q2', '#85B7EB'], ['Q3', '#AFA9EC'], ['Q4', '#ED93B1'], ['sin', '#4f7480']];
+  const PC_T = { libros_editor: '#FAC775', libros_autor: '#F7C873', capitulos: '#F0997B', capitulos_actas: '#E8B4A0' };
+  const citasPc = (m) => { const o = obraDe(m); if (o && o.citas != null) return +o.citas; const v = celdaDe(m, /^Citas/); return parseInt(v, 10) || 0; };
+  const anioPc = (m) => anioDe(m) || anioCmi(m);
+  const tituloPc = (m) => { const o = obraDe(m); if (o && o.titulo) return o.titulo; const t = campoTFE(m, 'Título'); if (t) return t; const s = String(m.t).split(/\.\s+/); return s.length > 2 ? s[1] : m.t; };
+  function datosPc() {
+    const B = bloquesDeTitulo('g:pc').map((b, k) => ({ ...b, k, l: entradasMenu(b.c), art: /articulo/.test(b.c) }));
+    B.forEach((b) => (b.col = b.art ? '#5DCAA5' : PC_T[vistaDeCod(b.c)] || '#F0997B'));
+    const todos = B.flatMap((b) => b.l.map((m) => {
+      const q = b.art ? cuartilDe(m).c : null;
+      return { m, b, a: anioPc(m), cit: citasPc(m), q: b.art ? (/^Q[1-4]$/.test(q) ? q : 'sin') : null };
+    }));
+    const as = todos.map((t) => t.a).filter(Boolean), desde = Math.min(...as), hasta = Math.max(...as);
+    const series = [...PC_Q.map(([q, col]) => ({ id: q, nom: q === 'sin' ? 'Artículos sin cuartil SJR' : `Artículos ${q}`, col, f: (t) => t.q === q })), ...B.filter((b) => !b.art).map((b) => ({ id: 'b' + b.k, nom: b.nom, col: b.col, f: (t) => t.b === b }))];
+    const porA = {}; for (let a = desde; a <= hasta; a++) porA[a] = series.map((s) => todos.filter((t) => t.a === a && s.f(t)).length);
+    const art = todos.filter((t) => t.b.art), q = Object.fromEntries(PC_Q.map(([k]) => [k, art.filter((t) => t.q === k).length]));
+    const top = [...todos].sort((x, y) => y.cit - x.cit).slice(0, 5).filter((t) => t.cit > 0);
+    const rev = new Map(); for (const t of art) { const c = cuartilDe(t.m); if (!c.rev) continue; const v = rev.get(c.rev) || { n: 0, best: 'sin' }; v.n++; if (/^Q/.test(t.q) && (v.best === 'sin' || t.q < v.best)) v.best = t.q; rev.set(c.rev, v); }
+    const revs = [...rev].sort((x, y) => y[1].n - x[1].n).slice(0, 6);
+    let primero = 0, ultimo = 0; for (const t of art) { const o = obraDe(t.m); const pos = o ? o.pos : parseInt(celdaDe(t.m, /^Posici/), 10); const n = o ? o.nAut : parseInt(celdaDe(t.m, /^N.*autores/), 10); if (pos === 1) primero++; else if (pos && n && pos === n) ultimo++; }
+    const corr = art.filter((t) => esCorr(t.m)).length;
+    const B0 = BIB() || {}, citAnio = B0.porAnio || null;
+    return { B, todos, desde, hasta, series, porA, art, q, top, revs, primero, ultimo, corr, citas: B0.citas || todos.reduce((s, t) => s + t.cit, 0), h: B0.h || null, citAnio };
+  }
+  function htmlPc() {
+    const D = (pcD = datosPc());
+    if (!D.B.length) return '<p class="cuenta">No hay apartados debajo de este título en el menú.</p>';
+    const an = pcAnimar ? ' anima' : '';
+    const kp = (n, t) => `<div class="crx-kp"><b data-cuenta="${n}" data-mil="1">${pcAnimar ? 0 : fhC(n)}</b><span>${t}</span></div>`;
+    // Columnas apiladas por año + línea de citas recibidas
+    const anios = Object.keys(D.porA).map(Number), W = 1200, H = 250, top = 22, bot = 28, iz = 8, de = 44;
+    const max = Math.max(1, ...anios.map((a) => D.porA[a].reduce((s, n) => s + n, 0)));
+    const paso = (W - iz - de) / anios.length, ancho = Math.max(6, paso * 0.66);
+    const bars = anios.map((a, k) => {
+      let y = H - bot; const x = iz + paso * k + (paso - ancho) / 2, tot = D.porA[a].reduce((s, n) => s + n, 0);
+      const seg = D.porA[a].map((n, i) => { if (!n) return ''; const h = (n / max) * (H - top - bot); y -= h; return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${ancho.toFixed(1)}" height="${Math.max(0.5, h - 1).toFixed(1)}" rx="2" fill="${D.series[i].col}"/>`; }).join('');
+      const et = a % 5 === 0 || a === anios[0] || a === anios[anios.length - 1] ? `<text x="${(x + ancho / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="tfx-ax">${a}</text>` : '';
+      return `<g class="tfx-col pc-col ${pcAnio === a ? 'on' : ''} ${pcAnio && pcAnio !== a ? 'dim' : ''}" data-pca="${a}" style="--d:${(k * 0.025).toFixed(3)}s"><rect class="tfx-hit" x="${(iz + paso * k).toFixed(1)}" y="0" width="${paso.toFixed(1)}" height="${H}" fill="transparent"/><g class="tfx-bar">${seg}</g>${tot && (tot === max || pcAnio === a) ? `<text x="${(x + ancho / 2).toFixed(1)}" y="${(y - 5).toFixed(1)}" text-anchor="middle" class="tfx-tot">${tot}</text>` : ''}${et}</g>`;
+    }).join('');
+    let linea = '';
+    if (D.citAnio) {
+      const cs = anios.map((a) => (D.citAnio[a] || {}).c || 0), cm = Math.max(1, ...cs);
+      const pts = anios.map((a, k) => [iz + paso * k + paso / 2, H - bot - (cs[k] / cm) * (H - top - bot)]);
+      const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+      linea = `<path class="pc-ln" d="${d}"/><text x="${W - de + 6}" y="${(pts[pts.length - 1][1] + 4).toFixed(1)}" class="pc-ln-t">${fhC(cs[cs.length - 1])}</text><text x="${W - de + 6}" y="${top - 6}" class="pc-ln-t s">citas/año</text>`;
+    }
+    const ley = D.series.filter((s, i) => anios.some((a) => D.porA[a][i])).map((s) => `<span><i style="background:${s.col}"></i>${esc(s.nom)}</span>`).join('') + (linea ? '<span><i class="ln"></i>Citas recibidas cada año (OpenAlex)</span>' : '');
+    // Cuartiles
+    const nq = D.art.length, qb = PC_Q.map(([k, col]) => (D.q[k] ? `<span style="flex:${D.q[k]};background:${col}" title="${k}: ${D.q[k]}"></span>` : '')).join('');
+    const ql = PC_Q.map(([k, col]) => (D.q[k] ? `<em><i style="background:${col}"></i>${k === 'sin' ? 'Sin cuartil' : k} <b>${D.q[k]}</b></em>` : '')).join('');
+    const topH = D.top.length ? D.top.map((t, i) => `<li data-pcm="${t.m.id}" data-pcb="${t.b.k}"><span class="pc-tt">${esc(tituloPc(t.m))}</span><span class="pc-tm">${t.a || ''}${t.q && t.q !== 'sin' ? ` · ${t.q}` : ''}</span><span class="pc-bar"><span style="width:${((t.cit / D.top[0].cit) * 100).toFixed(1)}%"></span></span><b>${fhC(t.cit)}</b></li>`).join('') : '<li><span class="pc-tt">Sin citas registradas</span></li>';
+    const revH = D.revs.map(([r, v]) => `<li><span>${esc(r)}</span>${/^Q/.test(v.best) ? `<i class="pc-q" style="background:${PC_Q.find((x) => x[0] === v.best)[1]}">${v.best}</i>` : ''}<b>${v.n}</b></li>`).join('');
+    const panel = `<section class="crx pc${an}">
+      <div class="crx-cab"><div><p class="tfx-sup">PRODUCCIÓN CIENTÍFICA · ${D.desde} – ${D.hasta}</p><h3>${fhC(D.todos.length)} publicaciones, ${fhC(D.citas)} citas</h3></div>
+        <div class="crx-kps">${kp(D.art.length, 'artículos')}${kp(D.q.Q1, 'en Q1')}${kp(D.citas, 'citas')}${D.h ? kp(D.h, 'índice h') : ''}</div></div>
+      <div class="crx-box"><div class="crx-tl-c"><p class="crx-lab">Ritmo de publicación año a año · los artículos, por cuartil de la revista en el año de publicación</p>${pcAnio ? '<button class="cmi-x" id="pcQ">Ver todos los años ×</button>' : ''}</div>
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Publicaciones por año">${bars}${linea}</svg>
+        <div class="dtd-ley">${ley}</div>
+        <div class="crx-inf" id="pcInf">${pcAnio ? infoPc(pcAnio) : 'Pasa por un año para ver su desglose; púlsalo para ver solo sus publicaciones.'}</div></div>
+      <div class="pc-g">
+        <div class="crx-box"><p class="crx-lab">Lo más citado</p><ol class="pc-top">${topH}</ol></div>
+        <div class="crx-box"><p class="crx-lab">Calidad de las revistas · ${nq} artículos</p><div class="tfx-cal-b${an}">${qb}</div><div class="tfx-cal-l">${ql}</div>
+          <p class="crx-lab" style="margin-top:14px">Autoría de los artículos</p><div class="pc-au"><div><b>${D.primero}</b><span>primer autor</span></div><div><b>${D.ultimo}</b><span>último autor</span></div><div><b>${D.corr}</b><span>autor de correspondencia</span></div></div></div>
+        <div class="crx-box"><p class="crx-lab">Revistas donde más publica</p><ol class="crx-en pc-rv">${revH}</ol></div>
+      </div>
+    </section>`;
+    const filtro = pcAnio ? `<div class="tfx-fil">Año ${pcAnio} <button id="pcQ2" aria-label="Ver todos los años">Ver todos ×</button></div>` : '';
+    const bloques = D.B.map((b) => {
+      const l = pcAnio ? b.l.filter((m) => anioPc(m) === pcAnio) : b.l;
+      const as = b.l.map(anioPc).filter(Boolean), r = as.length ? (Math.min(...as) === Math.max(...as) ? `${Math.min(...as)}` : `${Math.min(...as)} – ${Math.max(...as)}`) : '';
+      const abierto = l.length && (pcAb.has(b.k) || (pcAnio && l.length));
+      numVista = new Map(l.map((m, k) => [m.id, k + 1]));
+      const html = abierto ? l.map(htmlMerito).join('') : '';
+      numVista = null;
+      return `<details class="tfb ${l.length ? '' : 'vacio'}" data-pcd="${b.k}" style="--c:${b.col}" ${abierto ? 'open' : ''}><summary><i></i><span class="tfb-t">${esc(b.nom)}</span><span class="tfb-r">${pcAnio ? (l.length ? `en ${pcAnio}` : `ninguno en ${pcAnio}`) : r}</span><b>${l.length}</b><span class="tfb-fl" aria-hidden="true"></span></summary><div class="tfb-l">${html}</div></details>`;
+    }).join('');
+    return panel + filtro + `<div class="tfb-s">${bloques}</div>`;
+  }
+  function infoPc(a) {
+    const D = pcD, p = D.porA[a] || [], tot = p.reduce((s, n) => s + n, 0), c = D.citAnio && D.citAnio[a] ? D.citAnio[a].c : null;
+    return `<b>${a}</b> · ${tot} ${tot === 1 ? 'publicación' : 'publicaciones'}${c != null ? ` · ${fhC(c)} citas recibidas ese año` : ''}<br>${D.series.map((s, i) => (p[i] ? `<span class="tfx-pt"><i style="background:${s.col}"></i><b>${p[i]}</b>&nbsp;${esc(s.nom)}</span>` : '')).join('')}`;
+  }
+  function ligarPc(caja) {
+    const sec = $('.pc', caja); if (!sec) return;
+    const inf = $('#pcInf', sec), base = inf.innerHTML;
+    if (pcAnimar) {
+      pcAnimar = false;
+      $$('[data-cuenta]', sec).forEach((e) => {
+        const fin = +e.dataset.cuenta, t0 = performance.now(), dur = 1100;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { e.textContent = fhC(fin); return; }
+        const paso = (t) => { const p = Math.min(1, (t - t0) / dur); e.textContent = fhC(p < 1 ? Math.round(fin * (1 - Math.pow(1 - p, 3))) : fin); if (p < 1) requestAnimationFrame(paso); };
+        requestAnimationFrame(paso);
+      });
+      setTimeout(() => sec.classList.remove('anima'), 2200);
+    }
+    $$('.pc-col', sec).forEach((g) => {
+      g.onmouseenter = () => { inf.innerHTML = infoPc(+g.dataset.pca); g.classList.add('hov'); };
+      g.onmouseleave = () => { inf.innerHTML = base; g.classList.remove('hov'); };
+      g.onclick = () => { const a = +g.dataset.pca; pcAnio = pcAnio === a ? null : a; pintarLista(); };
+    });
+    $$('.pc-top li[data-pcm]', sec).forEach((li) => (li.onclick = () => {
+      pcAb.add(+li.dataset.pcb); pintarLista();
+      const e = $(`.merito[data-id="${li.dataset.pcm}"]`, caja); if (!e) return;
+      e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2500);
+    }));
+    [$('#pcQ', caja), $('#pcQ2', caja)].forEach((q) => { if (q) q.onclick = () => { pcAnio = null; pintarLista(); }; });
+    $$('details[data-pcd]', caja).forEach((d) => {
+      $('summary', d).onclick = (e) => {
+        e.preventDefault(); if (d.classList.contains('vacio')) return;
+        const k = +d.dataset.pcd, y = $('#lista').scrollTop;
+        if (d.open) pcAb.delete(k); else pcAb.add(k);
+        if (pcAnio && d.open) { d.open = false; return; }
+        pintarLista(); $('#lista').scrollTop = y;
+      };
+    });
+  }
+  // ---------- Desarrollo tecnológico (14/11/2026): software, datos abiertos, plataformas y apps ----------
+  // Se abre al pulsar el título «Desarrollo tecnológico» del menú de Transferencia (código g:dt).
+  let dtAb = new Set(), dtLinea = null, dtAnimar = true, dtD = null;
+  const DT_COL = ['#5DCAA5', '#85B7EB', '#FAC775', '#F0997B', '#AFA9EC', '#ED93B1'];
+  const DT_ICO = (c) => (/software/.test(c) ? '</>' : /datos/.test(c) ? '{ }' : /web/.test(c) ? 'www' : /app/.test(c) ? '▢' : '•');
+  const fechaDt = (m) => { const f = campoTFE(m, 'Fecha de publicación') || campoTFE(m, 'Fecha') || ''; let x = f.match(/(\d{1,2})\/(\d{1,2})\/((?:19|20)\d{2})/); if (x) return { y: +x[3], mo: +x[2] }; x = f.match(/(\d{1,2})\/((?:19|20)\d{2})/); if (x) return { y: +x[2], mo: +x[1] }; const a = anioCmi(m); return a ? { y: a, mo: null } : null; };
+  const nomDt = (m) => String(m.t || '').replace(/^SportsLab ?Research\s+/i, '').replace(/^Dataset used for the study entitled:\s*/i, 'Datos: ');
+  function datosDt() {
+    const B = bloquesDeTitulo('g:dt').map((b, k) => ({ ...b, k, col: DT_COL[k % DT_COL.length], ico: DT_ICO(b.c), l: entradasMenu(b.c) }));
+    const todos = B.flatMap((b) => b.l.map((m) => ({ m, b, f: fechaDt(m), linea: campoTFE(m, 'Línea de investigación') || 'Otras', doi: campoTFE(m, 'DOI'), repo: campoTFE(m, 'Repositorio'), dep: campoTFE(m, 'Depósito'), lic: campoTFE(m, 'Licencia'), ver: (campoTFE(m, 'Versión').match(/v?\d+(\.\d+)*(-\w+)?/) || [''])[0] })));
+    const lineas = [...new Set(todos.map((t) => t.linea))].map((l) => ({ l, items: todos.filter((t) => t.linea === l) })).sort((a, b) => b.items.length - a.items.length);
+    const cuenta = (f) => { const c = new Map(); todos.forEach((t) => { const k = f(t); if (k) c.set(k, (c.get(k) || 0) + 1); }); return [...c].sort((a, b) => b[1] - a[1]); };
+    const deposito = (t) => (/zenodo/i.test(t.dep) ? 'Zenodo (CERN)' : /digitum/i.test(t.dep) ? 'Digitum (UM)' : /github/i.test(t.dep + t.repo) ? 'GitHub' : /netlify|http/i.test(campoTFE(t.m, 'Enlace')) ? 'Web pública' : '');
+    return { B, todos, lineas, lic: cuenta((t) => t.lic.replace(/\s*\(.*/, '')), dep: cuenta(deposito), conDoi: todos.filter((t) => t.doi).length, conRepo: todos.filter((t) => /github/i.test(t.repo)).length };
+  }
+  function htmlDt() {
+    const D = (dtD = datosDt());
+    if (!D.B.length) return '<p class="cuenta">No hay apartados debajo de este título en el menú.</p>';
+    const an = dtAnimar ? ' anima' : '';
+    const kp = (n, t) => `<div class="crx-kp"><b data-cuenta="${n}">${dtAnimar ? 0 : n}</b><span>${t}</span></div>`;
+    const tipos = D.B.map((b) => `<button class="dt-tp ${b.l.length ? '' : 'vacio'}" data-dtk="${b.k}" style="--c:${b.col}"><span class="dt-ic">${esc(b.ico)}</span><b>${b.l.length}</b><span>${esc(b.nom)}</span></button>`).join('');
+    let k = 0;
+    const carriles = D.lineas.map((L, li) => `<div class="dt-ca ${dtLinea && dtLinea !== L.l ? 'dim' : ''} ${dtLinea === L.l ? 'on' : ''}"><button class="dt-ca-n" data-dtl="${esc(L.l)}"><b>${L.items.length}</b>${esc(L.l)}</button><div class="dt-ca-l">${L.items.map((t) => `<button class="dt-p" data-dtm="${t.m.id}" data-dtb="${t.b.k}" style="--c:${t.b.col};--d:${(0.05 * k++ + li * 0.04).toFixed(2)}s"><span class="dt-ic">${esc(t.b.ico)}</span><span class="dt-pn">${esc(nomDt(t.m))}</span>${t.ver ? `<em>${esc(t.ver)}</em>` : ''}</button>`).join('')}</div></div>`).join('');
+    const lista = (l) => l.map(([n, c]) => `<li><span>${esc(n)}</span><b>${c}</b></li>`).join('');
+    const panel = `<section class="crx dt${an}">
+      <div class="crx-cab"><div><p class="tfx-sup">CIENCIA ABIERTA · LABORATORIO DIGITAL</p><h3>${D.todos.length} desarrollos tecnológicos publicados en abierto</h3></div>
+        <div class="crx-kps">${kp(D.todos.length, 'desarrollos')}${kp(D.conDoi, 'con DOI')}${kp(D.conRepo, 'en GitHub')}${kp(D.lineas.length, 'líneas')}</div></div>
+      <div class="dt-tps">${tipos}</div>
+      <div class="crx-box"><div class="crx-tl-c"><p class="crx-lab">Por línea de investigación · pulsa una línea para filtrar, o un desarrollo para ir a su ficha</p>${dtLinea ? '<button class="cmi-x" id="dtQ">Ver todas las líneas ×</button>' : ''}</div><div class="dt-cas">${carriles}</div>
+        <div class="crx-inf" id="dtInf">Pasa por un desarrollo para ver su versión, licencia, depósito y DOI.</div></div>
+      <div class="cmi-g dt-g">
+        <div class="crx-box"><p class="crx-lab">Dónde están depositados</p><ol class="crx-en">${lista(D.dep)}</ol></div>
+        <div class="crx-box"><p class="crx-lab">Licencias abiertas</p><ol class="crx-en">${lista(D.lic)}</ol></div>
+      </div>
+    </section>`;
+    const filtro = dtLinea ? `<div class="tfx-fil">${esc(dtLinea)} <button id="dtQ2" aria-label="Ver todas las líneas">Ver todas ×</button></div>` : '';
+    const bloques = D.B.map((b) => {
+      const l = dtLinea ? b.l.filter((m) => (campoTFE(m, 'Línea de investigación') || 'Otras') === dtLinea) : b.l;
+      const abierto = l.length && (dtAb.has(b.k) || (dtLinea && l.length));
+      numVista = new Map(l.map((m, i) => [m.id, i + 1]));
+      const html = abierto ? l.map(htmlMerito).join('') : '';
+      numVista = null;
+      return `<details class="tfb ${l.length ? '' : 'vacio'}" data-dtd="${b.k}" style="--c:${b.col}" ${abierto ? 'open' : ''}><summary><i></i><span class="tfb-t">${esc(b.nom)}</span><span class="tfb-r">${b.l.length ? (dtLinea ? (l.length ? 'en esta línea' : 'ninguno en esta línea') : '') : 'sin entradas todavía'}</span><b>${l.length}</b><span class="tfb-fl" aria-hidden="true"></span></summary><div class="tfb-l">${html}</div></details>`;
+    }).join('');
+    return panel + filtro + `<div class="tfb-s">${bloques}</div>`;
+  }
+  function ligarDt(caja) {
+    const sec = $('.dt', caja); if (!sec) return;
+    const inf = $('#dtInf', sec), base = inf.innerHTML, D = dtD;
+    if (dtAnimar) {
+      dtAnimar = false;
+      $$('[data-cuenta]', sec).forEach((e) => {
+        const fin = +e.dataset.cuenta, t0 = performance.now(), dur = 800;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { e.textContent = fin; return; }
+        const paso = (t) => { const p = Math.min(1, (t - t0) / dur); e.textContent = Math.round(fin * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(paso); };
+        requestAnimationFrame(paso);
+      });
+      setTimeout(() => sec.classList.remove('anima'), 2200);
+    }
+    const ir = (k, id) => {
+      dtAb.add(+k); pintarLista();
+      const d = $(`details[data-dtd="${k}"]`, caja); const e = id && $(`.merito[data-id="${id}"]`, caja);
+      (e || d) && (e || d).scrollIntoView({ block: e ? 'center' : 'start', behavior: 'smooth' });
+      if (e) { e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2500); }
+    };
+    $$('.dt-p', sec).forEach((p) => {
+      const t = D.todos.find((x) => String(x.m.id) === p.dataset.dtm);
+      p.onmouseenter = p.onfocus = () => {
+        const f = t.f ? (t.f.mo ? `${String(t.f.mo).padStart(2, '0')}/${t.f.y}` : t.f.y) : '';
+        inf.innerHTML = `<b>${esc(t.m.t)}</b><br>${[t.b.nom, t.ver && `versión ${t.ver}`, f && `publicado ${f}`, t.lic && `licencia ${t.lic}`, t.dep, t.doi && `DOI ${t.doi}`].filter(Boolean).map((x) => `<span class="tfx-pt">${esc(x)}</span>`).join('')}`;
+      };
+      p.onmouseleave = p.onblur = () => (inf.innerHTML = base);
+      p.onclick = () => ir(p.dataset.dtb, t.m.id);
+    });
+    $$('[data-dtk]', sec).forEach((b) => (b.onclick = () => { if (!b.classList.contains('vacio')) ir(b.dataset.dtk); }));
+    $$('[data-dtl]', sec).forEach((b) => (b.onclick = () => { dtLinea = dtLinea === b.dataset.dtl ? null : b.dataset.dtl; pintarLista(); }));
+    [$('#dtQ', caja), $('#dtQ2', caja)].forEach((q) => { if (q) q.onclick = () => { dtLinea = null; pintarLista(); }; });
+    $$('details[data-dtd]', caja).forEach((d) => {
+      $('summary', d).onclick = (e) => {
+        e.preventDefault(); if (d.classList.contains('vacio')) return;
+        const k = +d.dataset.dtd, y = $('#lista').scrollTop;
+        if (d.open) dtAb.delete(k); else dtAb.add(k);
+        if (dtLinea && d.open) { d.open = false; return; }
+        pintarLista(); $('#lista').scrollTop = y;
+      };
+    });
+  }
+  // ---------- Otras actividades de transferencia (14/11/2026): línea de hitos y la Cátedra como foco ----------
+  // Se abre al pulsar el título «Otras actividades de transferencia» del menú de Transferencia (código g:oat).
+  let oatAb = new Set(), oatCat = null, oatAnimar = true, oatD = null;
+  const OAT_COL = ['#5DCAA5', '#F0997B', '#FAC775', '#85B7EB', '#AFA9EC', '#ED93B1', '#97C459', '#F09595', '#9FE1CB', '#B5D4F4'];
+  const textoOat = (m) => [m.t, ...m.filas.flat().map((p) => p.v)].join(' ');
+  function datosOat() {
+    const B = bloquesDeTitulo('g:oat').map((b, k) => ({ ...b, k, col: OAT_COL[k % OAT_COL.length], l: entradasMenu(b.c) }));
+    const todos = B.flatMap((b) => b.l.map((m) => ({ m, b, a: anioCmi(m), cat: /catedra/i.test(textoOat(m).normalize('NFD').replace(/[\u0300-\u036f]/g, '')) })));
+    const anios = [...new Set(todos.map((t) => t.a).filter(Boolean))].sort((x, y) => y - x);
+    const as = todos.map((t) => t.a).filter(Boolean);
+    return { B, todos, anios, sinA: todos.filter((t) => !t.a), cat: todos.filter((t) => t.cat), desde: Math.min(...as), hasta: Math.max(...as), tipos: B.filter((b) => b.l.length).length };
+  }
+  function htmlOat() {
+    const D = (oatD = datosOat());
+    if (!D.B.length) return '<p class="cuenta">No hay apartados debajo de este título en el menú.</p>';
+    const an = oatAnimar ? ' anima' : '';
+    const kp = (n, t) => `<div class="crx-kp"><b data-cuenta="${n}">${oatAnimar ? 0 : n}</b><span>${t}</span></div>`;
+    const mosaico = D.B.map((b, i) => `<button class="oat-t ${b.l.length ? '' : 'vacio'} ${oatCat === b.k ? 'on' : ''} ${oatCat != null && oatCat !== b.k ? 'dim' : ''}" data-oak="${b.k}" style="--c:${b.col};--d:${(i * 0.04).toFixed(2)}s"><b>${b.l.length}</b><span>${esc(b.nom)}</span></button>`).join('');
+    const fila = (t, i) => `<button class="oat-h ${t.cat ? 'ct' : ''}" data-oam="${t.m.id}" data-oab="${t.b.k}" style="--c:${t.b.col};--d:${(0.2 + i * 0.035).toFixed(2)}s"><i></i><span class="oat-ht">${esc(t.m.t)}</span><em>${esc(t.b.nom)}</em></button>`;
+    let n = 0; const vis = (t) => oatCat == null || t.b.k === oatCat;
+    const linea = D.anios.map((a) => { const l = D.todos.filter((t) => t.a === a && vis(t)); return l.length ? `<div class="oat-y"><div class="oat-yn"><b>${a}</b><span>${l.length}</span></div><div class="oat-yl">${l.map((t) => fila(t, n++)).join('')}</div></div>` : ''; }).join('')
+      + (D.sinA.filter(vis).length ? `<div class="oat-y"><div class="oat-yn"><b class="s">Sin fecha</b><span>${D.sinA.filter(vis).length}</span></div><div class="oat-yl">${D.sinA.filter(vis).map((t) => fila(t, n++)).join('')}</div></div>` : '');
+    const foco = D.cat.length ? `<div class="crx-box oat-foco"><p class="crx-lab">En el foco</p><div class="oat-fc"><b data-cuenta="${D.cat.length}">${oatAnimar ? 0 : D.cat.length}</b><div><span>actividades de transferencia ligadas a la <strong>Cátedra Ejercicio, Educación y Cáncer</strong></span><small>${[...new Set(D.cat.map((t) => t.b.nom))].map(esc).join(' · ')}</small></div></div>
+        <ul class="oat-fl">${D.cat.map((t) => `<li><button data-oam="${t.m.id}" data-oab="${t.b.k}" style="--c:${t.b.col}"><i></i>${esc(t.m.t)}</button></li>`).join('')}</ul></div>` : '';
+    const panel = `<section class="crx oat${an}">
+      <div class="crx-cab"><div><p class="tfx-sup">TRANSFERENCIA A LA SOCIEDAD · ${D.desde} – ${D.hasta}</p><h3>${D.todos.length} actividades de transferencia en ${D.tipos} ámbitos</h3></div>
+        <div class="crx-kps">${kp(D.todos.length, 'actividades')}${kp(D.tipos, 'ámbitos')}${kp(D.hasta - D.desde + 1, 'años')}${D.cat.length ? kp(D.cat.length, 'con la Cátedra') : ''}</div></div>
+      <div class="oat-mo">${mosaico}</div>
+      <div class="oat-g">
+        <div class="crx-box"><div class="crx-tl-c"><p class="crx-lab">Línea de hitos · del más reciente al más antiguo · pulsa uno para ir a su ficha</p>${oatCat != null ? '<button class="cmi-x" id="oatQ">Ver todos los ámbitos ×</button>' : ''}</div><div class="oat-li">${linea}</div></div>
+        ${foco}
+      </div>
+    </section>`;
+    const bloques = D.B.map((b) => {
+      const abierto = b.l.length && (oatAb.has(b.k) || oatCat === b.k);
+      const as = b.l.map(anioCmi).filter(Boolean), r = as.length ? (Math.min(...as) === Math.max(...as) ? `${Math.min(...as)}` : `${Math.min(...as)} – ${Math.max(...as)}`) : '';
+      numVista = new Map(b.l.map((m, i) => [m.id, i + 1]));
+      const html = abierto ? b.l.map(htmlMerito).join('') : '';
+      numVista = null;
+      return `<details class="tfb ${b.l.length ? '' : 'vacio'}" data-oad="${b.k}" style="--c:${b.col}" ${abierto ? 'open' : ''}><summary><i></i><span class="tfb-t">${esc(b.nom)}</span><span class="tfb-r">${b.l.length ? r : 'sin entradas visibles'}</span><b>${b.l.length}</b><span class="tfb-fl" aria-hidden="true"></span></summary><div class="tfb-l">${html}</div></details>`;
+    }).join('');
+    return panel + `<div class="tfb-s">${bloques}</div>`;
+  }
+  function ligarOat(caja) {
+    const sec = $('.oat', caja); if (!sec) return;
+    if (oatAnimar) {
+      oatAnimar = false;
+      $$('[data-cuenta]', sec).forEach((e) => {
+        const fin = +e.dataset.cuenta, t0 = performance.now(), dur = 800;
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) { e.textContent = fin; return; }
+        const paso = (t) => { const p = Math.min(1, (t - t0) / dur); e.textContent = Math.round(fin * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(paso); };
+        requestAnimationFrame(paso);
+      });
+      setTimeout(() => sec.classList.remove('anima'), 2400);
+    }
+    $$('[data-oam]', sec).forEach((h) => (h.onclick = () => {
+      oatAb.add(+h.dataset.oab); pintarLista();
+      const e = $(`.merito[data-id="${h.dataset.oam}"]`, caja); if (!e) return;
+      e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.classList.add('on'); setTimeout(() => e.classList.remove('on'), 2500);
+    }));
+    $$('[data-oak]', sec).forEach((b) => (b.onclick = () => { if (b.classList.contains('vacio')) return; const k = +b.dataset.oak; oatCat = oatCat === k ? null : k; pintarLista(); }));
+    const q = $('#oatQ', caja); if (q) q.onclick = () => { oatCat = null; pintarLista(); };
+    $$('details[data-oad]', caja).forEach((d) => {
+      $('summary', d).onclick = (e) => {
+        e.preventDefault(); if (d.classList.contains('vacio')) return;
+        const k = +d.dataset.oad, y = $('#lista').scrollTop;
+        if (d.open) { oatAb.delete(k); if (oatCat === k) oatCat = null; } else oatAb.add(k);
+        pintarLista(); $('#lista').scrollTop = y;
+      };
+    });
   }
   const ahoraDec = () => { const d = new Date(); return d.getFullYear() + d.getMonth() / 12 + (d.getDate() - 1) / 365; };
   const decDe = (s) => { const f = String(s || '').match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/); return f ? +f[3] + (+f[2] - 1) / 12 + (+f[1] - 1) / 365 : null; };
