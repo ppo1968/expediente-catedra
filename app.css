@@ -1067,3 +1067,15 @@ button.dh.dhb:hover{background:none;color:#fff}button.dh.dhb:hover::after{transf
 @keyframes oatEntra{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
 @keyframes oatLinea{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @media (max-width:1150px){.oat-mo{grid-template-columns:repeat(2,minmax(0,1fr))}.oat-g{grid-template-columns:1fr}}
+
+
+/* La colección reutiliza exactamente merito/pub, doc, tx, pt, pa, pr y pch. */
+.pubprof{width:100%;min-width:0;margin-top:12px}
+.pubprof-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.pubprof-list{display:block;min-width:0}
+.pubprof-detail{display:block;min-width:0;margin-top:4px}
+.pubprof-detail summary{cursor:pointer;list-style:none}
+.pubprof-detail summary::-webkit-details-marker{display:none}
+.pubprof-biblio{padding:8px 0}
+.pubprof-biblio p{margin:4px 0;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere}
+.pubprof-entry .bs{width:auto;max-width:100%;white-space:normal}

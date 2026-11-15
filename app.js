@@ -73,8 +73,50 @@
   const vistaDeCod = (c) => (String(c || '').startsWith('v:') ? String(c).slice(2) : null);
   const todasDe = (c) => P.datos.meritos.filter((m) => m.cod === c && (trabajo || publico(m))); // el apartado del CVN entero
   const deVista6_2 = () => (actual && actual.vista ? entradasMenu(actual.cm) : todasDe('6.2')); // Artículos, o Libros y capítulos
-  const entradasMenu = (c) => { const v = vistaDeCod(c); return v ? P.datos.meritos.filter((m) => m.vista === v && (trabajo || publico(m))) : entradas(c); };
+  const entradasMenu = (c) => {
+    const v = vistaDeCod(c), ambito = (VISTAS[v] || {}).coleccion;
+    if (ambito) {
+      const ids = new Set(((P.datos.publicaciones_profesionales || {}).registros || []).filter((r) => ambito === 'todas' || r.ambito === ambito).map((r) => r.merito_id));
+      return P.datos.meritos.filter((m) => ids.has(m.id) && (trabajo || publico(m)));
+    }
+    return v ? P.datos.meritos.filter((m) => m.vista === v && (trabajo || publico(m))) : entradas(c);
+  };
   const marcarActivo = () => { if (!actual) return; const it = items.find((x) => x.firstElementChild.textContent === actual.bloque); if (it) it.classList.add('activo'); };
+
+
+
+  let pubprofAmbito = 'nacionales';
+  function htmlPublicacionesProfesionales() {
+    const coleccion = P.datos.publicaciones_profesionales || {}, registros = coleccion.registros || [];
+    const ambito = actual.vista === 'pubprof_int' ? 'internacionales' : actual.vista === 'pubprof_nac' ? 'nacionales' : pubprofAmbito;
+    const listado = registros.filter((r) => r.ambito === ambito);
+    const tabs = ['nacionales', 'internacionales'].map((a) => '<button type="button" role="tab" aria-selected="' + (a === ambito) + '" class="pubprof-tab pf' + (a === ambito ? ' on' : '') + '" data-pubprof-tab="' + a + '">' + (a === 'nacionales' ? 'Nacionales' : 'Internacionales') + ' (' + registros.filter((r) => r.ambito === a).length + ')</button>').join('');
+    return '<section class="pubprof"><div class="pubprof-tabs" role="tablist" aria-label="Ámbito de las publicaciones">' + tabs + '</div><p class="cuenta">' + listado.length + ' entradas</p><div class="pubprof-list" role="tabpanel">' + listado.map((r, index) => {
+      const m = P.datos.meritos.find((x) => x.id === r.merito_id && (trabajo || publico(x)));
+      const campos = r.referencia.split(/(?=(?:REVISTA|EDITORIAL|ISSN|ISNN|ISBN|FECHA DE PUBLICACIÓN|VOLUMEN|PÁGINAS|PAGINAS|CIUDAD|PAÍS DE PUBLICACIÓN|AUTOR\/ES|URL|AÑO):)/).slice(1);
+      const campo = (etiqueta) => { const f = campos.find((c) => c.startsWith(etiqueta + ':')); return f ? f.slice(etiqueta.length + 1).trim().replace(/[.\s]+$/, '') : ''; };
+      const autores = campo('AUTOR/ES'), revista = campo('REVISTA');
+      const fecha = campo('FECHA DE PUBLICACIÓN') || campo('AÑO'), anio = (fecha.match(/\b(?:19|20)\d{2}\b/) || [])[0] || '';
+      const autoresHtml = esc(autores).replace(/\b(Pino(?:[-‐ ]Ortega)?\s*,\s*J(?:osé)?\.?)/gi, '<b>$1</b>');
+      const bibliografia = campos.length ? campos.map((f) => '<p>' + esc(f.trim()) + '</p>').join('') : '<p>' + esc(r.referencia) + '</p>';
+      const pdfs = m ? (m.pdfs || []).filter((p) => p.nivel === 'alta' && (coleccion.documentos_comprobados || {})[p.archivo] === p.sha) : [];
+      const acciones = pdfs.map((p, i) => '<button type="button" class="bs pch doi" data-pubprof-pdf="' + esc(p.archivo) + '" data-pubprof-title="' + esc(r.titulo) + '">PDF' + (pdfs.length > 1 ? ' ' + (i + 1) : '') + '</button>').join('');
+      const ficha = '<details class="pubprof-detail"><summary class="pmas">Ficha completa</summary><div class="pubprof-biblio">' + bibliografia + (m ? '<p><b>Ficha del expediente:</b> ' + esc(m.doc || '') + '</p>' : '<p>Correspondencia con el expediente pendiente de revisión.</p>') + (!pdfs.length ? '<p>Sin PDF comprobado asociado a esta referencia.</p>' : '') + '</div></details>';
+      return '<article class="merito pub pubprof-entry"><div class="doc">' + (index + 1) + '</div><div class="tx"><p class="pt">' + esc(r.titulo) + '</p>' + (autores ? '<p class="pa">' + autoresHtml + '</p>' : '') + (revista ? '<p class="pr">' + esc(revista) + '</p>' : '') + (anio ? '<div class="pcs"><span class="pch">' + anio + '</span></div>' : '') + (acciones ? '<div class="pdfs"><div class="pdf">' + acciones + '</div></div>' : '') + ficha + '</div></article>';
+    }).join('') + '</div></section>';
+  }
+  function ligarPublicacionesProfesionales(caja) {
+    $$('[data-pubprof-tab]', caja).forEach((b) => { b.onclick = () => { pubprofAmbito = b.dataset.pubprofTab; if (actual.vista !== 'pubprof') { actual.vista = 'pubprof'; actual.cm = 'v:pubprof'; } pintarLista(); $('#lista').scrollTop = 0; }; });
+    $$('[data-pubprof-pdf]', caja).forEach((b) => { b.onclick = async () => {
+      const rel = b.dataset.pubprofPdf, col = P.datos.publicaciones_profesionales || {};
+      if (!(col.documentos_comprobados || {})[rel]) { aviso('Este documento no tiene una ruta comprobada.', { mal: true }); return; }
+      try {
+        if (window.api) { const error = await window.api.abrir(rel); if (error) aviso('No se pudo abrir el PDF: ' + error, { mal: true }); }
+        else if (!abrirVentana(rel, b.dataset.pubprofTitle)) aviso('El navegador ha bloqueado la apertura del PDF.', { mal: true });
+      } catch (e) { aviso('No se pudo abrir el documento comprobado.', { mal: true }); }
+    }; });
+  }
+
   function pintarCab() {
     document.body.classList.toggle('vert', (P.ajustes.menu || 'horizontal') === 'vertical');
     if (CONSULTA) { $('.modo').hidden = true; $('#bDes').hidden = true; $('#bEd').hidden = true; $('#bSC').hidden = true; document.body.classList.add('tribunal'); return; }
@@ -708,6 +750,10 @@
     if (actual.c === 'g:cur') { caja.innerHTML = htmlCur(); ligarCur(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
     if (actual.c === 'g:tfe') { caja.innerHTML = htmlTFE(); ligarTFE(caja); $$('.merito', caja).forEach(ligarMerito); ligarEnlaces(caja); $('#lista').scrollTop = y; return; }
     if (actual.vista === 'internacional') { caja.innerHTML = htmlInternacional(); ligarInternacional(caja); $('#lista').scrollTop = y; return; }
+    if ((VISTAS[actual.vista] || {}).coleccion) {
+      caja.innerHTML = htmlPublicacionesProfesionales();
+      ligarPublicacionesProfesionales(caja); $('#lista').scrollTop = y; return;
+    }
     const esPub = actual.c === '6.2';
     const deAqui = () => (actual.vista ? entradasMenu(actual.cm) : actual.cvn ? todasDe(actual.c) : entradas(actual.c));
     const l = actual.c === 'PV' ? P.datos.meritos.filter((m) => m.nuevo) : esPub ? filtrarPubs(deAqui()) : deAqui();
@@ -719,7 +765,7 @@
     const clave = actual.cm || actual.c, sinJust = trabajo && actual.c !== 'SC' && actual.c !== 'PV' ? l.filter((m) => !m.nota && !m.dato && !m.pdfs.length) : [];
     if (propJ && propJ.k !== clave) propJ = null;
     const htmlPJ = !sinJust.length && !propJ ? '' : propJ ? htmlPropJ() : `<div class="pj-ban"><div><b>${sinJust.length} ${sinJust.length === 1 ? 'entrada sin justificante' : 'entradas sin justificante'}</b><span>El programa busca en E: el documento de cada una y te lo propone. Tú solo validas.</span></div><button class="bs prim" id="bPJ">Buscar justificantes automáticamente</button></div>`;
-    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadoresCalidad(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + (actual.vista === 'software' ? htmlDesarrollo() : '') + (actual.vista === 'catedras' ? htmlCatedra() : '') + (actual.vista === 'digitum' ? htmlDigitum() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' && actual.vista !== 'digitum' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
+    caja.innerHTML = (esPub ? (LIBROS_V.has(actual.vista) ? htmlResumenLibros(l) : htmlBiblio()) + htmlFiltroPubs() : '') + (LIBROS_OTROS.has(actual.vista) ? htmlResumenLibros(l) : '') + (actual.vista === 'indicadores' ? htmlIndicadoresCalidad(l) + htmlBiblio() : '') + (TESIS_V.has(actual.vista) ? htmlResumenTesis(l) : '') + (actual.vista === 'grupos' ? htmlLiderazgo() : '') + (actual.vista === 'software' ? htmlDesarrollo() : '') + (actual.vista === 'catedras' ? htmlCatedra() : '') + (actual.vista === 'digitum' ? htmlDigitum() : '') + avisoSC + herrAp + htmlPJ + avisoC0 + (l.length ? (verCuenta ? `<p class="cuenta">${l.length} ${l.length === 1 ? 'entrada' : 'entradas'}${esPub && l.length !== deAqui().length ? ` de ${deAqui().length}` : ''}</p>` : '') + (actual.c === '4.1' && !actual.vista && P.datos.docencia_horas ? htmlHoras() : LINEA[actual.c] && actual.vista !== 'sinubicar' && actual.vista !== 'digitum' ? htmlLinea(actual.c, l) : '') + (APD(actual.c).tabla ? htmlTabla(l) : '') + (actual.vista === 'experiencia_deportiva' ? htmlExperienciaDeportiva(l) : actual.c === '4.2' && !actual.vista ? htmlGruposTFE(l) : conNumVista(l, () => l.map(esPub ? htmlPub : htmlMerito).join(''))) : '<p class="vacio">Este apartado no tiene entradas.</p>');
     const bN = $('#bNE'); if (bN) bN.onclick = async () => { const r = await op('nuevo', { cod: actual.vista ? actual.cm : actual.c }, 'Entrada añadida.'); if (r) { const e = $(`.merito[data-id="${r.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); const c = $('.val.ed', e); if (c) c.click(); } } };
     $$('[data-ir]', caja).forEach((t) => { t.onclick = () => { const e = $(`.merito[data-id="${t.dataset.ir}"]`); if (e) e.scrollIntoView({ block: 'start', behavior: 'smooth' }); }; });
     const bQ = $('#bQA'); if (bQ) bQ.onclick = () => { quitando = !quitando; pintarLista(); };
@@ -1125,6 +1171,16 @@
   // v0.17: también cuando el apartado del CVN está repartido en varias opciones del menú (cada opción numera desde 1).
   const repartido = () => actual && !actual.vista && !actual.cvn && P.datos.meritos.some((m) => m.cod === actual.c && m.vista);
   const conNumVista = (l, pintar) => { if (!actual || (!actual.vista && !repartido())) return pintar(); numVista = new Map(l.map((m, i) => [m.id, i + 1])); try { return pintar(); } finally { numVista = null; } };
+
+  function htmlExperienciaDeportiva(l) {
+    const grupos = ['Selecciones nacionales y deporte adaptado', 'Clubes deportivos', 'Escuelas y categorías de formación'];
+    const texto = trabajo ? '<p class="cuenta">Cargos técnicos y dirección deportiva. Entradas existentes reorganizadas, sin duplicar méritos. Las temporadas indicadas como 1 o 2 están pendientes de concretar. Se conserva la visibilidad original de cada ficha y la documentación pendiente.</p>' : '';
+    return texto + conNumVista(l, () => grupos.map((g) => {
+      const ms = l.filter((m) => m.filas.flat().some((c) => c.e === 'Ámbito' && c.v === g));
+      return ms.length ? '<h3 class="tfe-gr">' + esc(g) + ' <span>' + ms.length + '</span></h3>' + ms.map(htmlMerito).join('') : '';
+    }).join(''));
+  }
+
   function htmlGruposTFE(l) {
     const grupos = TIPOS_TFE.map(([k, nom]) => [k, k === 'X' && !trabajo ? 'Otros trabajos dirigidos' : nom, l.filter((m) => tipoTFE(m) === k)]).filter(([, , v]) => v.length);
     numVista = new Map(grupos.flatMap(([, , v]) => v.map((m, i) => [m.id, i + 1])));

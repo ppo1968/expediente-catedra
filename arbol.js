@@ -94,11 +94,16 @@
     asesoramiento: { cod: '5.4', nom: 'Asesoramiento' }, catedras: { cod: '5.4', nom: 'Cátedras' }, creacion: { cod: '5.4', nom: 'Creación de grupo, sociedad y titulación' },
     formacion_emp: { cod: '5.4', nom: 'Formación y ponencias para empresas' }, divulgacion: { cod: '6.5', nom: 'Divulgación' }, estancias_t: { cod: '6.8', nom: 'Estancias de transferencia' },
     eventos: { cod: '6.6', nom: 'Organización de eventos' }, reconocimientos: { cod: '5.4', nom: 'Reconocimientos' }, revision: { cod: '6.6', nom: 'Revisión de libros' },
+    experiencia_deportiva: { cod: 'C.0', nom: 'Experiencia profesional en el ámbito deportivo' },
     gestion: { cod: '2.2', nom: 'Gestión universitaria' }, acreditaciones: { cod: '6.12', nom: 'Acreditaciones' }, premios: { cod: '6.10', nom: 'Premios y distinciones' },
     colef: { cod: '6.13', nom: 'Colegiación (COLEF)' }, padrino: { cod: '6.13', nom: 'Padrino de promoción' },
     tit_deportivas: { cod: '3.3', nom: 'Titulaciones deportivas' }, cursos_transf: { cod: '3.4', nom: 'Cursos orientados a la transferencia' }, otros_cursos: { cod: '3.5', nom: 'Otros cursos recibidos' }, libros_doc: { cod: '4.5', nom: 'Libros docentes' }, digitum: { cod: '4.5', nom: 'Material docente en abierto (Digitum)' },
     libros_editor: { cod: '6.2', nom: 'Libros como editor' }, libros_autor: { cod: '6.2', nom: 'Libros publicados' }, capitulos: { cod: '6.2', nom: 'Capítulos de libro' }, capitulos_actas: { cod: '6.2', nom: 'Capítulos en libros de actas' },
     libros_transf: { cod: '5.4', nom: 'Libros de transferencia' },
+    // Colección transversal: referencias al registro original, sin duplicar méritos.
+    pubprof: { cod: '6.5', nom: 'Publicaciones profesionales y divulgativas', coleccion: 'todas' },
+    pubprof_nac: { cod: '6.5', nom: 'Publicaciones nacionales', coleccion: 'nacionales' },
+    pubprof_int: { cod: '6.5', nom: 'Publicaciones internacionales', coleccion: 'internacionales' },
     docentium: { cod: '4.8', nom: 'DocentiUM' }, dedicacion: { cod: '4.8', nom: 'Dedicación docente' }, encuestas: { cod: '4.8', nom: 'Encuestas de satisfacción' },
   };
   const V = (...ids) => ids.map((i) => ['v:' + i, ARBOL.vistas[i].nom]);
@@ -107,13 +112,16 @@
     Docencia: [...V('docentium', 'dedicacion', 'encuestas'), ['4.1', 'Formación académica impartida'], ['g:tfe', 'Trabajos fin de estudios', 'h'], ...V('tfg', 'tfm', 'trib_tfg', 'trib_tfm'), H('Cursos, material e innovación'), ['4.3', 'Tutorías académicas de estudiantes'], ['4.4', 'Cursos y seminarios impartidos'], ['4.5', 'Material y otras publicaciones docentes o de carácter pedagógico'], ...V('libros_doc', 'digitum'), ['4.6', 'Proyectos de innovación docente'], ...V('gid'), ['4.7', 'Aportaciones más relevantes de su CV de docencia'], ['4.8', 'Otros méritos de docencia']],
     Investigación: [...V('indicadores', 'internacional'), H('Dirección de tesis doctorales'), ...V('tesis', 'tesis_curso', 'formacion_inv', 'trib_tesis'), H('Producción científica'), ...V('articulos', 'libros_editor', 'libros_autor', 'capitulos', 'capitulos_actas'), H('Labor editorial'), ...V('editor', 'revisor'), H('Grupos y proyectos'), ...V('grupos', 'proyectos', 'redes'), H('Congresos'), ...V('dir_congresos', 'comite_cientifico', 'comite_organizador', 'plenarias', 'ponencias', 'comunicaciones', 'asistencia'), H('Jornadas y seminarios'), ...V('jornadas'), H('Formación impartida'), ...V('cursos_inv', 'master', 'erasmus'), H('Evaluación, comités y tribunales'), ...V('evaluacion', 'trib_plazas'), H('Otros méritos de investigación'), ...V('estancias', 'ayudas', 'sexenios'), H('Por revisar'), ...V('sinubicar')],
     Transferencia: [H('Desarrollo tecnológico'), ...V('software', 'datos_abiertos', 'plataformas_web', 'apps_moviles'), H('Contratos y reconocimiento'), ...V('contratos', 'sexenio_t'), H('Otras actividades de transferencia'), ...V('asesoramiento', 'catedras', 'creacion', 'formacion_emp', 'libros_transf', 'divulgacion', 'estancias_t', 'eventos', 'reconocimientos', 'revision')],
-    'Otros méritos': V('tit_deportivas', 'acreditaciones', 'premios', 'colef', 'padrino'),
+    'Otros méritos': V('experiencia_deportiva', 'tit_deportivas', 'acreditaciones', 'premios', 'colef', 'padrino'),
   };
   // El menú inicial ya sale con la estructura de E:.
   for (const [b, l] of Object.entries(ARBOL.menuV17)) {
     const i = ARBOL.menu.findIndex((x) => x[0] === b);
     if (i >= 0) ARBOL.menu[i] = [b, l]; else ARBOL.menu.splice(ARBOL.menu.findIndex((x) => x[0] === 'Complementos'), 0, [b, l]);
   }
+  const pubprofMenu = ARBOL.menu.find((x) => x[0] === 'Transferencia')[1];
+  const pubprofPos = pubprofMenu.findIndex((x) => x[0] === 'v:divulgacion') + 1;
+  pubprofMenu.splice(pubprofPos, 0, ...V('pubprof'));
   // 13/11: Gestión es una entrada propia del menú, después de Transferencia
   ARBOL.menu.splice(ARBOL.menu.findIndex((x) => x[0] === 'Transferencia') + 1, 0, ['Gestión', null, 'v:gestion']);
   ARBOL.menu.push(['Ajustes', [['', 'Publicar en la web'], ['', 'Generar HTML'], ['', 'Generar ejecutable para PC'], ['', 'Generar ejecutable para Mac'], ['', 'Generar ZIP'], ['', 'Generar carpeta del CV'], ['', 'Generar CV en Word (CVN)'], ['', 'Completar y clasificar méritos'], ['', 'Incorporar méritos nuevos'], ['', 'Carpetas de búsqueda de justificantes'], ['', 'Menú vertical u horizontal'], ['', 'Cerrar expediente'], ['', 'Documentos sin usar'], ['', 'Apartados eliminados']]]);
