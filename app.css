@@ -726,13 +726,13 @@ a.pch.doi{background:#fff;box-shadow:inset 0 0 0 1px var(--linea);color:var(--ma
 .rl-q.no,.pch.spi.no{background:#f1efe8;color:#6b6a65}
 .rl-f{margin:0;font-size:12.5px;color:var(--suave)}
 
-/* v0.17: índice h por base de datos (Indicadores de calidad y rankings) */
-.ind{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:14px 16px;margin:10px 0 14px}
-.ind h3{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--azul)}
-.ind-t{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-.ind-k{background:var(--azul);color:#fff;border-radius:6px;padding:12px 16px;display:flex;flex-direction:column;gap:2px}
-.ind-f{font-size:13px;opacity:.85}.ind-k b{font-size:30px;font-weight:600;line-height:1.1}.ind-k small{font-size:12px;opacity:.8}
-.ind-n{margin:10px 0 0;font-size:12.5px;color:var(--suave)}
+/* v0.17: índice h por base de datos (Indicadores de calidad y rankings). Clases ih-* para no pisar la franja .ind de la portada */
+.ih{background:#fff;border:1px solid var(--linea);border-radius:8px;padding:14px 16px;margin:10px 0 14px}
+.ih h3{margin:0 0 10px;font-size:15px;font-weight:600;color:var(--azul)}
+.ih-t{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.ih-k{background:var(--azul);color:#fff;border-radius:6px;padding:12px 16px;display:flex;flex-direction:column;gap:2px}
+.ih-f{font-size:13px;opacity:.85}.ih-k b{font-size:30px;font-weight:600;line-height:1.1}.ih-k small{font-size:12px;opacity:.8}
+.ih-n{margin:10px 0 0;font-size:12.5px;color:var(--suave)}
 
 /* v0.17: dirección de tesis */
 .rl-k small{font-size:12px;opacity:.75}

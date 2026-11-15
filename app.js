@@ -285,6 +285,19 @@
   // Franja de indicadores: logo, cifras, enlaces y fuente. Se edita aquí y se guarda en el expediente.
   let editInd = false;
   const IND = () => P.datos.indicadores || { cargo: '', cifras: [], enlaces: [], fuente: '' };
+  // «Publicaciones» se cuenta sola con las del CV (las mismas que en Investigación > Artículos), para que no haya dos cifras distintas
+  // Publicaciones, artículos en Q1, citas e índice h salen de la misma fuente que Investigación > Artículos
+  function cifraViva(e, v) {
+    const t = String(e).trim(), pubs = () => P.datos.meritos.filter((m) => m.cod === '6.2' && publico(m)), B = BIB();
+    const fnum = (n) => Number(n).toLocaleString('es-ES', { useGrouping: 'always', maximumFractionDigits: 0 }); // 5.295, como el resto de la portada
+    try {
+      if (/^publicaciones$/i.test(t)) { const n = pubs().length; if (n) return fnum(n); }
+      if (/q1/i.test(t)) { const n = pubs().filter((m) => cuartilDe(m).c === 'Q1').length; if (n) return fnum(n); }
+      if (/^citas/i.test(t) && B && B.citas) return fnum(B.citas);
+      if (/^índice h/i.test(t) && B && B.h) return fnum(B.h);
+    } catch (er) { /* si falla, queda la cifra escrita */ }
+    return v;
+  }
   function htmlIndicadores() {
     const I = IND();
     if (!trabajo && !I.cifras.length && !I.enlaces.length) return '';
@@ -299,7 +312,7 @@
         <div class="fil"><button class="bs prim" id="inOk">Guardar</button><button class="bs" id="inNo">Cancelar</button></div></section>`;
     }
     return `<section class="ind"><div class="ind-c"><img src="marca/Logosimbolo-negativo.png" alt="Universidad de Murcia"><div class="ind-p"><b>${esc(nombrePersona())}</b>${I.cargo ? `<span>${esc(I.cargo)}</span>` : ''}</div>${trabajo ? '<button class="ind-ed" id="inEd">Editar indicadores</button>' : ''}</div>
-      ${I.cifras.length ? `<div class="ind-n">${I.cifras.map(([e, v]) => `<div><strong>${esc(v)}</strong><span>${esc(e)}</span></div>`).join('')}</div>` : ''}
+      ${I.cifras.length ? `<div class="ind-n">${I.cifras.map(([e, v]) => `<div><strong>${esc(cifraViva(e, v))}</strong><span>${esc(e)}</span></div>`).join('')}</div>` : ''}
       ${I.enlaces.length ? `<div class="ind-e">${I.enlaces.map(([t, u]) => `<a href="#" data-url="${esc(u)}" title="${esc(u)}">${esc(t)}</a>`).join('')}</div>` : ''}
       ${I.fuente ? `<p class="ind-f">${esc(I.fuente)}</p>` : ''}</section>`;
   }
@@ -1031,7 +1044,7 @@
     const orden = ['WOS', 'SCOPUS', 'OpenAlex', 'GOOGLE SCHOLAR'], nom = { WOS: 'Web of Science', SCOPUS: 'Scopus', 'GOOGLE SCHOLAR': 'Google Scholar', OpenAlex: 'OpenAlex' };
     fuentes.sort((a, b) => orden.indexOf(a.f.toUpperCase() === 'OPENALEX' ? 'OpenAlex' : a.f.toUpperCase()) - orden.indexOf(b.f.toUpperCase() === 'OPENALEX' ? 'OpenAlex' : b.f.toUpperCase()));
     if (!fuentes.length) return '';
-    return `<section class="ind"><h3>Índice h según la base de datos</h3><div class="ind-t">${fuentes.map((x) => `<div class="ind-k"><span class="ind-f">${esc(nom[x.f.toUpperCase()] || nom[x.f] || x.f)}</span><b>${x.h}</b><small>${x.citas ? `${fnum(x.citas)} citas · i10: ${fnum(x.i10)} · ` : ''}${esc(x.d)}</small></div>`).join('')}</div><p class="ind-n">Cada base de datos indexa revistas y libros distintos, por eso el índice h cambia de una a otra. OpenAlex se actualiza desde Ajustes; las demás, con la fecha de la ficha.</p></section>`;
+    return `<section class="ih"><h3>Índice h según la base de datos</h3><div class="ih-t">${fuentes.map((x) => `<div class="ih-k"><span class="ih-f">${esc(nom[x.f.toUpperCase()] || nom[x.f] || x.f)}</span><b>${x.h}</b><small>${x.citas ? `${fnum(x.citas)} citas · i10: ${fnum(x.i10)} · ` : ''}${esc(x.d)}</small></div>`).join('')}</div><p class="ih-n">Cada base de datos indexa revistas y libros distintos, por eso el índice h cambia de una a otra. OpenAlex se actualiza desde Ajustes; las demás, con la fecha de la ficha.</p></section>`;
   }
   // ---------- Libros (v0.17): resumen de cada subapartado (cuántos, editoriales, citas, justificantes) ----------
   const LIBROS_V = new Set(['libros', 'libros_editor', 'libros_autor', 'capitulos', 'capitulos_actas']);
