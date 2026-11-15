@@ -124,7 +124,7 @@
   pubprofMenu.splice(pubprofPos, 0, ...V('pubprof'));
   // 13/11: Gestión es una entrada propia del menú, después de Transferencia
   ARBOL.menu.splice(ARBOL.menu.findIndex((x) => x[0] === 'Transferencia') + 1, 0, ['Gestión', null, 'v:gestion']);
-  ARBOL.menu.push(['Ajustes', [['', 'Publicar en la web'], ['', 'Generar HTML'], ['', 'Generar ejecutable para PC'], ['', 'Generar ejecutable para Mac'], ['', 'Generar ZIP'], ['', 'Generar carpeta del CV'], ['', 'Generar CV en Word (CVN)'], ['', 'Completar y clasificar méritos'], ['', 'Incorporar méritos nuevos'], ['', 'Carpetas de búsqueda de justificantes'], ['', 'Menú vertical u horizontal'], ['', 'Cerrar expediente'], ['', 'Documentos sin usar'], ['', 'Apartados eliminados']]]);
+  ARBOL.menu.push(['Ajustes', [['', 'Visualización del CV'], ['', 'Revisar, mostrar y eliminar'], ['', 'Publicar en la web'], ['', 'Generar HTML'], ['', 'Generar ejecutable para PC'], ['', 'Generar ejecutable para Mac'], ['', 'Generar ZIP'], ['', 'Generar carpeta del CV'], ['', 'Generar CV en Word (CVN)'], ['', 'Completar y clasificar méritos'], ['', 'Incorporar méritos nuevos'], ['', 'Carpetas de búsqueda de justificantes'], ['', 'Menú vertical u horizontal'], ['', 'Cerrar expediente'], ['', 'Documentos sin usar'], ['', 'Apartados eliminados']]]);
   if (typeof module !== 'undefined' && module.exports) module.exports = ARBOL;
   else raiz.ARBOL = ARBOL;
 })(typeof window !== 'undefined' ? window : globalThis);

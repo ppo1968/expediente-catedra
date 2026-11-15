@@ -60,6 +60,7 @@
   }
   const tel = (p) => /^Teléfono/i.test(p.e);
   const ligaDe = (p) => {
+    if (/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(String(p.v || '').trim())) return 'mailto:' + String(p.v).trim();
     if (p.e === 'DOI' && p.v && !/^https?:/.test(p.v)) return `https://doi.org/${p.v.trim()}`;
     if (p.e === 'ORCID' && /^\d{4}-/.test(p.v)) return `https://orcid.org/${p.v.trim()}`;
     return null;
@@ -99,7 +100,7 @@
       const fecha = campo('FECHA DE PUBLICACIÓN') || campo('AÑO'), anio = (fecha.match(/\b(?:19|20)\d{2}\b/) || [])[0] || '';
       const autoresHtml = esc(autores).replace(/\b(Pino(?:[-‐ ]Ortega)?\s*,\s*J(?:osé)?\.?)/gi, '<b>$1</b>');
       const bibliografia = campos.length ? campos.map((f) => '<p>' + esc(f.trim()) + '</p>').join('') : '<p>' + esc(r.referencia) + '</p>';
-      const pdfs = m ? (m.pdfs || []).filter((p) => p.nivel === 'alta' && (coleccion.documentos_comprobados || {})[p.archivo] === p.sha) : [];
+      const pdfs = m && pdfsVisibles() ? (m.pdfs || []).filter((p) => p.nivel === 'alta' && (coleccion.documentos_comprobados || {})[p.archivo] === p.sha) : [];
       const acciones = pdfs.map((p, i) => '<button type="button" class="bs pch doi" data-pubprof-pdf="' + esc(p.archivo) + '" data-pubprof-title="' + esc(r.titulo) + '">PDF' + (pdfs.length > 1 ? ' ' + (i + 1) : '') + '</button>').join('');
       const ficha = '<details class="pubprof-detail"><summary class="pmas">Ficha completa</summary><div class="pubprof-biblio">' + bibliografia + (m ? '<p><b>Ficha del expediente:</b> ' + esc(m.doc || '') + '</p>' : '<p>Correspondencia con el expediente pendiente de revisión.</p>') + (!pdfs.length ? '<p>Sin PDF comprobado asociado a esta referencia.</p>' : '') + '</div></details>';
       return '<article class="merito pub pubprof-entry"><div class="doc">' + (index + 1) + '</div><div class="tx"><p class="pt">' + esc(r.titulo) + '</p>' + (autores ? '<p class="pa">' + autoresHtml + '</p>' : '') + (revista ? '<p class="pr">' + esc(revista) + '</p>' : '') + (anio ? '<div class="pcs"><span class="pch">' + anio + '</span></div>' : '') + (acciones ? '<div class="pdfs"><div class="pdf">' + acciones + '</div></div>' : '') + ficha + '</div></article>';
@@ -117,7 +118,38 @@
     }; });
   }
 
+  const pdfsVisibles = () => trabajo || P.ajustes.mostrarPdfs !== false;
+  function controlesFila(m, f) {
+    if (!trabajo || m.filas.length < 2) return '';
+    return `<span class="fila-acciones"><button data-mf="${f}" data-dir="-1" ${f === 0 ? 'disabled' : ''} title="Subir esta fila" aria-label="Subir esta fila">↑</button><button data-mf="${f}" data-dir="1" ${f === m.filas.length - 1 ? 'disabled' : ''} title="Bajar esta fila" aria-label="Bajar esta fila">↓</button><button data-xf="${f}" title="Quitar esta fila" aria-label="Quitar esta fila">×</button></span>`;
+  }
+  function confirmarEliminacion(id) {
+    const m = buscar(id);
+    if (window.confirm('¿Eliminar esta ficha del currículum?\n\n' + m.t + '\n\nSus PDF no se borran: pasan a Sin clasificar si no los usa otra ficha. Puedes recuperar la ficha con Deshacer.')) op('eliminar', { id }, 'Ficha eliminada. Sus PDF se conservan.');
+  }
+  function pintarBuscador() {
+    let caja = $('#buscadorCV');
+    if (!caja) {
+      caja = document.createElement('section'); caja.id = 'buscadorCV'; caja.setAttribute('aria-label', 'Buscar en el currículum');
+      caja.innerHTML = '<label for="buscarCV">Buscar en el CV</label><input type="search" id="buscarCV" placeholder="Título, entidad, año…"><button class="bs" id="limpiarCV">Limpiar</button><div id="resultadosCV" role="region" aria-live="polite" hidden></div>';
+      $('#main').before(caja);
+      $('#buscarCV').oninput = resultadosBusqueda;
+      $('#limpiarCV').onclick = () => { $('#buscarCV').value = ''; resultadosBusqueda(); $('#buscarCV').focus(); };
+    }
+    caja.hidden = !trabajo && P.ajustes.mostrarBuscador === false;
+    $('#buscarCV').value = ''; $('#resultadosCV').innerHTML = ''; $('#resultadosCV').hidden = true;
+  }
+  function resultadosBusqueda() {
+    const normal = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const q = normal($('#buscarCV').value).trim().split(/\s+/).filter(Boolean), caja = $('#resultadosCV');
+    caja.hidden = !q.length; if (!q.length) { caja.innerHTML = ''; return; }
+    const lista = P.datos.meritos.filter(m => (trabajo || publico(m)) && !(P.datos.ocultos || []).includes(m.cod) && q.every(p => normal([m.t, m.anio, ...m.filas.flat().map(c => c.e + ' ' + c.v)].join(' ')).includes(p)));
+    caja.innerHTML = '<p>' + lista.length + ' resultados' + (lista.length > 80 ? ' · se muestran los primeros 80' : '') + '</p>' + lista.slice(0, 80).map(m => '<button class="resultado-cv" data-resultado="' + m.id + '"><b>' + esc(m.t) + '</b><small>' + esc(m.anio || '') + ' · ' + esc(nombreDe(m.vista ? 'v:' + m.vista : m.cod)) + (m.privado ? ' · Oculto al tribunal' : '') + '</small></button>').join('');
+    $$('[data-resultado]', caja).forEach(b => { b.onclick = () => { const m = buscar(+b.dataset.resultado); caja.hidden = true; salirEditor(); irA(m.vista ? 'v:' + m.vista : m.cod); if (m.cod === '1') { actual.ficha = true; pintarLista(); } const e = $(`.merito[data-id="${m.id}"],.merito-dato[data-id="${m.id}"]`); if (e) { e.scrollIntoView({ block: 'center' }); e.classList.add('destaca'); } }; });
+  }
+
   function pintarCab() {
+    pintarBuscador();
     document.body.classList.toggle('vert', (P.ajustes.menu || 'horizontal') === 'vertical');
     if (CONSULTA) { $('.modo').hidden = true; $('#bDes').hidden = true; $('#bEd').hidden = true; $('#bSC').hidden = true; document.body.classList.add('tribunal'); return; }
     const n = P.datos.meritos.filter((m) => m.cod === 'SC').length + P.datos.sin_merito.length;
@@ -260,7 +292,7 @@
   // ---------- Méritos ----------
   function htmlPdfs(m) {
     if (m.nota || m.dato) return '';
-    const lista = trabajo ? m.pdfs : m.pdfs.filter((p) => p.nivel === 'alta');
+    const lista = trabajo ? m.pdfs : pdfsVisibles() ? m.pdfs.filter((p) => p.nivel === 'alta') : [];
     const f = lista.map((p, k) => {
       const rev = p.nivel !== 'alta';
       const nom = rev ? 'Propuesto' : lista.length > 1 ? `PDF ${k + 1}` : 'PDF';
@@ -283,9 +315,9 @@
       if (!vis.length) return '';
       // Si un texto es largo, cada dato ocupa todo el ancho de la ficha en vez de ir a dos columnas.
       if (vis.length > 1 && vis.some(([p]) => String(p.v || '').length > 90)) {
-        return vis.map(([p, c], k) => `<div class="fc">${htmlCelda(p, f, c)}${trabajo && m.filas.length > 1 && k === 0 ? `<button class="xf" data-xf="${f}" title="Quitar esta fila" aria-label="Quitar esta fila">×</button>` : ''}</div>`).join('');
+        return vis.map(([p, c], k) => `<div class="fc">${htmlCelda(p, f, c)}${k === 0 ? controlesFila(m, f) : ''}</div>`).join('');
       }
-      return `<div class="fc ${vis.length > 1 ? 'par' : ''} ${vis[0][0].e ? '' : 'parr'}">${vis.map(([p, c]) => htmlCelda(p, f, c)).join('')}${trabajo && m.filas.length > 1 ? `<button class="xf" data-xf="${f}" title="Quitar esta fila" aria-label="Quitar esta fila">×</button>` : ''}</div>`;
+      return `<div class="fc ${vis.length > 1 ? 'par' : ''} ${vis[0][0].e ? '' : 'parr'}">${vis.map(([p, c]) => htmlCelda(p, f, c)).join('')}${controlesFila(m, f)}</div>`;
     }).join('');
   }
   function htmlMerito(m) {
@@ -293,9 +325,9 @@
     const dc = m.nota ? 'Nota' : m.cod === 'SC' ? '' : a.sinNum ? '' : (numVista && numVista.get(m.id)) || m.n;
     const herr = trabajo ? `<div class="hm">
         ${m.cod !== 'SC' && !m.nota ? '<button data-sube title="Subir">↑</button><button data-baja title="Bajar">↓</button>' : ''}
-        <button data-fila title="Añadir una fila">+ Fila</button>
+        <button data-fila title="Añadir una fila">+ Fila</button><button data-duplicar title="Copiar el texto en una nueva ficha, sin PDF y oculta al tribunal">Duplicar</button>
         <select data-mov aria-label="Mover a otro apartado"><option value="">Mover a…</option>${opcionesAp()}</select>
-        ${m.nuevo ? '<button class="verif" data-verif>Verificado</button>' : ''}<button data-priv>${m.privado ? 'Mostrar al tribunal' : 'Ocultar al tribunal'}</button>
+        ${m.nuevo ? '<button class="verif" data-verif title="Dar por revisada la ficha. Su visibilidad se mantiene.">Marcar como revisado</button>' : ''}<button data-priv>${m.privado ? 'Mostrar al tribunal' : 'Ocultar al tribunal'}</button>
         <button class="b" data-del>Eliminar</button></div>` : '';
     return `<article class="merito ${m.nota ? 'esnota' : ''} ${dc === '' ? 'sinn' : ''} ${m.privado ? 'oculto' : ''} ${sel === m.id ? 'on' : ''}" data-id="${m.id}">${dc === '' ? '' : `<div class="doc">${esc(dc)}</div>`}<div class="tx">
       ${htmlFilas(m)}
@@ -386,7 +418,7 @@
       const id = +e.dataset.id;
       const bo = (s, fn) => { const b = $(s, e); if (b) b.onclick = (ev) => { ev.stopPropagation(); fn(); }; };
       bo('[data-priv]', () => op('privado', { id }, buscar(id).privado ? 'Visible para el tribunal.' : 'Oculto al tribunal.'));
-      bo('[data-del]', () => op('eliminar', { id }, 'Dato eliminado.'));
+      bo('[data-del]', () => confirmarEliminacion(id));
       ligarEdicion(e, id);
     });
     const aD = $('#aDato'); if (aD) aD.onclick = () => op('nuevo', { cod: '1', dato: true }, 'Dato añadido.');
@@ -562,6 +594,7 @@
     $('#hRe').onclick = () => { pausa = false; $('#hPau').textContent = 'Pausa'; ver(0); };
     $('#hPau').onclick = () => { pausa = !pausa; $('#hPau').textContent = pausa ? 'Seguir' : 'Pausa'; if (pausa) clearTimeout(hT); else ver(i + 1); };
     dots.forEach((d, k) => { d.onclick = () => { pausa = false; $('#hPau').textContent = 'Pausa'; ver(k); }; });
+    const recuperar = $('#hRestaurar'); if (recuperar) recuperar.onclick = () => { histVista = false; op('portada', { oculta: !POR().oculta }, POR().oculta ? 'Historia de inicio activada.' : 'Historia de inicio oculta al tribunal.'); };
     const oc = $('#hOc'); if (oc) oc.onchange = () => op('portada', { oculta: !oc.checked }, oc.checked ? 'La historia se verá en la web del tribunal.' : 'La historia ya no se verá en la web del tribunal.');
   }
   function htmlHitos() {
@@ -594,7 +627,7 @@
       const h = g.aps.map(lin).join('');
       return h ? `<section class="ig"><h2>${esc(g.gr)}</h2>${h}</section>` : '';
     }).join('');
-    $('#meritos').innerHTML = htmlHistoria() + `<div id="cifras">${htmlIndicadores()}</div>` + htmlHitos() + htmlSobreMi() + `<h2 class="indt">Índice del currículum</h2><div class="portada"><div><p class="pcvn">Currículum vitae normalizado (CVN)</p><p class="pdet">Cada apartado sigue los títulos, epígrafes y orden del CVN. Pulsa uno para verlo con sus documentos.</p></div>${htmlFoto()}</div><div class="indice">${grupos}</div>`;
+    $('#meritos').innerHTML = (trabajo ? `<div class="fil historia-preferencias"><button class="bs" id="hRestaurar">${POR().oculta ? 'Activar vídeo / historia de inicio' : 'Ocultar vídeo / historia al tribunal'}</button><span class="cuenta">${POR().oculta ? 'Actualmente oculto al tribunal' : 'Visible al tribunal'}</span></div>` : '') + htmlHistoria() + `<div id="cifras">${htmlIndicadores()}</div>` + htmlHitos() + htmlSobreMi() + `<h2 class="indt">Índice del currículum</h2><div class="portada"><div><p class="pcvn">Currículum vitae normalizado (CVN)</p><p class="pdet">Cada apartado sigue los títulos, epígrafes y orden del CVN. Pulsa uno para verlo con sus documentos.</p></div>${htmlFoto()}</div><div class="indice">${grupos}</div>`;
     $$('[data-ic]').forEach((b) => { b.onclick = () => irA(b.dataset.ic); });
     $$('.hit-p').forEach((b) => { b.onclick = () => irTrayectoria(b.dataset.a); });
     ligarFoto();
@@ -2572,6 +2605,8 @@
     const cerrado = P.ajustes.cerrado;
     const pend = P.datos.meritos.filter((m) => !m.nota && !m.dato && m.cod !== 'SC' && (!m.pdfs.length || m.pdfs.some((p) => p.nivel !== 'alta'))).length;
     caja.innerHTML = `<section class="aj" data-sec="publicar" id="secPub"><h2>Publicar en la web</h2><p class="cuenta">El tribunal entra con un enlace y una clave. Todo va cifrado: sin la clave no se puede leer nada.</p><div id="pubCaja"><p class="cuenta">Cargando…</p></div></section>
+      <section class="aj" data-sec="visualizacion"><h2>Visualización del CV</h2><p><label><input type="checkbox" id="ajPdfs" ${P.ajustes.mostrarPdfs !== false ? 'checked' : ''}> Mostrar justificantes PDF al tribunal y en las versiones de consulta</label></p><p class="cuenta">Si lo desactivas, la web generada contiene el CV sin sus PDF. Los originales siguen en tu expediente de trabajo. Publica la web para aplicar el cambio en el enlace del tribunal.</p><p><label><input type="checkbox" id="ajBuscar" ${P.ajustes.mostrarBuscador !== false ? 'checked' : ''}> Mostrar el buscador del CV al tribunal</label></p><p><label><input type="checkbox" id="ajHistoria" ${POR().oculta ? '' : 'checked'}> Mostrar vídeo / historia en Inicio</label></p></section>
+      <section class="aj" data-sec="revision"><h2>Revisar, mostrar y eliminar</h2><p><b>Marcar como revisado:</b> retira la ficha de «Por verificar». No confirma sus PDF ni cambia si es visible al tribunal.</p><p><b>Mostrar / Ocultar al tribunal:</b> controla la visibilidad de la ficha.</p><p><b>Aceptar un PDF propuesto:</b> confirma que es el justificante de esa ficha.</p><p><b>Eliminar:</b> retira la ficha del CV; sus PDF se conservan en Sin clasificar si no los utiliza otra ficha. Puedes recuperar la ficha con Deshacer.</p><p><b>Duplicar:</b> crea una copia del texto sin PDF, oculta al tribunal hasta que la completes y decidas mostrarla.</p></section>
       <section class="aj" data-sec="generar"><h2>Generar versiones</h2><p class="cuenta">Salen como en la vista Tribunal. Elige una carpeta de ruta corta, como el Escritorio o un pendrive.${pend ? ` Ahora mismo, ${pend.toLocaleString('es-ES')} méritos no tienen un PDF confirmado.` : ''}</p>
         <div class="tarjs">${salida.map(([k, t, d]) => `<article class="tarj"><h3>${t}</h3><p>${d}</p><button class="bs prim" data-g="${k}">Generar</button></article>`).join('')}</div><div id="prog" role="status"></div></section>
       <section class="aj" data-sec="clasificar"><h2>Completar y clasificar méritos</h2><p class="cuenta">El programa lee, compara y propone. Tú confirmas mérito a mérito (o todos los de seguridad alta de una vez).</p>
@@ -2587,6 +2622,12 @@
       <section class="aj" data-sec="cerrar"><h2>Cerrar expediente</h2><p class="cuenta">${cerrado ? `Cerrado el ${new Date(cerrado).toLocaleString('es-ES')}. No se puede modificar.` : 'Los números quedan fijos y no se puede modificar nada hasta que lo reabras.'}</p><button class="bs ${cerrado ? '' : 'mal'}" id="bCierra">${cerrado ? 'Reabrir expediente' : 'Cerrar expediente'}</button></section>
       <section class="aj" data-sec="documentos"><h2>Documentos sin usar</h2><p class="cuenta">${P.datos.sin_merito.length.toLocaleString('es-ES')} PDF de tu carpeta no están en ningún mérito. No salen en lo que entregues.</p><button class="bs" id="bVerSC">Verlos y colocarlos</button></section>
       <section class="aj" data-sec="apartados"><h2>Apartados eliminados</h2>${oc.length ? oc.map((c) => `<div class="fila"><span style="flex:1">${esc(nombreDe(c))}</span><button class="bs" data-res="${esc(c)}">Recuperar</button></div>`).join('') : '<p class="cuenta">No has eliminado ninguno.</p>'}</section>`;
+    const guardarVisual = async (clave, valor) => { const r = await window.api.ajuste(clave, valor); if (r.error) { aviso(r.error, { mal: true }); return; } if (r.paquete) P = r.paquete; cerrarPdf(); pintarCab(); aviso('Preferencia guardada. Publica la web para actualizar el enlace del tribunal.'); };
+    $('#ajPdfs').onchange = e => guardarVisual('mostrarPdfs', e.target.checked);
+    $('#ajBuscar').onchange = e => guardarVisual('mostrarBuscador', e.target.checked);
+    $('#ajHistoria').onchange = e => op('portada', { oculta: !e.target.checked }, 'Visibilidad de la historia guardada.');
+    const filtroAj = document.createElement('div'); filtroAj.className = 'fil'; filtroAj.innerHTML = '<label for="buscarAjustes">Buscar en ajustes</label><input class="bs" type="search" id="buscarAjustes" placeholder="PDF, vídeo, buscar, revisar…">'; caja.prepend(filtroAj);
+    $('#buscarAjustes').oninput = e => { const q = e.target.value.toLocaleLowerCase('es'); $$('section.aj', caja).forEach(s => { s.hidden = !s.textContent.toLocaleLowerCase('es').includes(q); }); };
     $$('[data-g]', caja).forEach((b) => { b.onclick = () => generar(b.dataset.g); });
     pintarCarpetaNuevos();
     pintarOrigenAj();
@@ -2600,7 +2641,7 @@
     $$('[data-res]', caja).forEach((b) => { b.onclick = () => op('restaurarApartado', { cod: b.dataset.res }, 'Apartado recuperado.'); });
     const O = (actual.opcion || '').toLowerCase();
     pintarPub();
-    const sec = /publicar/.test(O) ? 'publicar' : /clasificar|completar/.test(O) ? 'clasificar' : /nuevos|incorporar/.test(O) ? 'nuevos' : /b[uú]squeda|justificantes/.test(O) ? 'busqueda' : /generar/.test(O) ? 'generar' : /men[uú]/.test(O) ? 'menu' : /cerrar/.test(O) ? 'cerrar' : /documentos/.test(O) ? 'documentos' : /apartados/.test(O) ? 'apartados' : null;
+    const sec = /visualiz|pdf|historia/.test(O) ? 'visualizacion' : /revis/.test(O) ? 'revision' : /publicar/.test(O) ? 'publicar' : /clasificar|completar/.test(O) ? 'clasificar' : /nuevos|incorporar/.test(O) ? 'nuevos' : /b[uú]squeda|justificantes/.test(O) ? 'busqueda' : /generar/.test(O) ? 'generar' : /men[uú]/.test(O) ? 'menu' : /cerrar/.test(O) ? 'cerrar' : /documentos/.test(O) ? 'documentos' : /apartados/.test(O) ? 'apartados' : null;
     if (sec) { const e = $(`[data-sec="${sec}"]`); if (e) e.scrollIntoView({ block: 'start' }); }
   }
   // ---------- Ajustes → Carpetas de búsqueda de justificantes (v0.17) ----------
@@ -2791,6 +2832,7 @@
     return true;
   }
   function verPdf(e, id, sha) {
+    if (!pdfsVisibles()) return;
     if (CONSULTA) {
       const m = buscar(id), p = m && m.pdfs.find((x) => x.sha === sha);
       if (p && abrirVentana(p.archivo, m.t)) { $$('.merito').forEach((x) => x.classList.toggle('on', x === e)); return; }
@@ -2806,11 +2848,13 @@
     $$('[data-ver]', e).forEach((b) => { b.onclick = (ev) => { ev.stopPropagation(); verPdf(e, id, b.dataset.ver); }; });
     if (!trabajo) {
       // En la vista del tribunal, pulsar el mérito abre su justificante.
-      const pr = buscar(id).pdfs.find((p) => p.nivel === 'alta');
+      const pr = pdfsVisibles() && buscar(id).pdfs.find((p) => p.nivel === 'alta');
       if (pr) { e.classList.add('abrible'); e.onclick = (ev) => { if (!ev.target.closest('a,button')) verPdf(e, id, pr.sha); }; }
       return;
     }
     ligarEdicion(e, id);
+    $$('[data-mf]', e).forEach((b) => { b.onclick = () => op('moverFila', { id, f: +b.dataset.mf, direccion: +b.dataset.dir }, 'Fila movida.'); });
+    const duplicar = $('[data-duplicar]', e); if (duplicar) duplicar.onclick = async () => { const r = await op('duplicar', { id }, 'Copia creada sin PDF, oculta al tribunal hasta que la revises.'); if (r) { const c = $(`.merito[data-id="${r.id}"]`); if (c) c.scrollIntoView({ block: 'center' }); } };
     $$('[data-xf]', e).forEach((b) => { b.onclick = () => op('quitarFila', { id, f: +b.dataset.xf }, 'Fila quitada.'); });
     // En una opción del menú se sube o baja respecto a lo que se ve; la posición se guarda dentro del apartado del CVN.
     const mov = (d) => {
@@ -2822,7 +2866,7 @@
     const bS = $('[data-sube]', e); if (bS) bS.onclick = () => mov(-1);
     const bB = $('[data-baja]', e); if (bB) bB.onclick = () => mov(1);
     const bFi = $('[data-fila]', e); if (bFi) bFi.onclick = async () => { const r = await op('nuevaFila', { id }, 'Fila añadida.'); if (r) { const c = $(`.merito[data-id="${id}"] .val[data-f="${r.fila}"]`); if (c) c.click(); } };
-    const bV = $('[data-verif]', e); if (bV) bV.onclick = () => op('verificar', { id }, 'Verificado: ya lo ve el tribunal.');
+    const bV = $('[data-verif]', e); if (bV) bV.onclick = () => op('verificar', { id }, 'Ficha revisada. Su visibilidad no ha cambiado; usa Mostrar al tribunal si quieres hacerla visible.');
     const bP = $('[data-priv]', e); if (bP) bP.onclick = () => op('privado', { id }, buscar(id).privado ? 'Visible para el tribunal.' : 'Oculto al tribunal.');
     $$('[data-ok]', e).forEach((b) => { b.onclick = () => op('aceptar', { id, sha: b.dataset.ok }, 'PDF confirmado y colocado en su carpeta.'); });
     $$('[data-qui]', e).forEach((b) => { b.onclick = () => { if (sel === id && selSha === b.dataset.qui) { sel = null; selSha = null; } op('quitarPdf', { id, sha: b.dataset.qui }, 'PDF quitado. Sigue guardado en la carpeta de revisar.'); }; });
@@ -2856,7 +2900,7 @@
       op('mover', { id, cod: mv.value, sinVista: !String(mv.value).startsWith('v:') }, `Movido a ${nombreDe(mv.value)}.`);
     };
     const db = $('[data-del]', e);
-    if (db) db.onclick = () => op('eliminar', { id }, 'Eliminado.');
+    if (db) db.onclick = () => confirmarEliminacion(id);
     const bu = $('[data-busca]', e);
     if (bu) bu.onclick = () => {
       const t = buscar(id).t.replace(URLRE, ' ');
@@ -2975,7 +3019,7 @@
     pintarAvisoNuevos();
   });
   $('#bSC').onclick = () => { salirEditor(); elegir(null, 'SC', 'Sin clasificar'); };
-  $('#bPV').onclick = () => { salirEditor(); elegir(null, 'PV', 'Por verificar'); $('#sel1').textContent = 'Clasificados automáticamente: revisa cada uno y pulsa «Verificado»'; };
+  $('#bPV').onclick = () => { salirEditor(); elegir(null, 'PV', 'Por verificar'); $('#sel1').textContent = 'Clasificados automáticamente: revisa cada uno y pulsa «Marcar como revisado»'; };
   if (!CONSULTA) window.__clas = () => clas;
   document.addEventListener('click', cerrar);
   document.addEventListener('keydown', (e) => {

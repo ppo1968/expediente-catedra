@@ -1079,3 +1079,18 @@ button.dh.dhb:hover{background:none;color:#fff}button.dh.dhb:hover::after{transf
 .pubprof-biblio{padding:8px 0}
 .pubprof-biblio p{margin:4px 0;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere}
 .pubprof-entry .bs{width:auto;max-width:100%;white-space:normal}
+
+/* Row controls remain separate from whole-entry arrows. */
+body:not(.tribunal) .fc:has(.fila-acciones){padding-right:84px}
+.historia-preferencias{position:relative;z-index:2;margin-bottom:40px}
+.fila-acciones{position:absolute;right:0;top:0;display:flex;gap:2px;opacity:.45}
+.fc:hover .fila-acciones,.fc:focus-within .fila-acciones{opacity:1}
+.fila-acciones button{padding:1px 5px;border:1px solid var(--linea);border-radius:3px;background:white;font-size:13px}
+.fila-acciones button:disabled{opacity:.25;cursor:default}
+#buscadorCV{position:relative;display:flex;flex:none;gap:10px;align-items:center;padding:8px 24px;background:var(--crema);z-index:25}
+#buscarCV{min-width:100px;width:min(500px,55vw);padding:6px 10px;border:1px solid var(--linea);border-radius:4px;font:inherit}
+#resultadosCV{position:absolute;top:100%;left:24px;right:24px;background:white;box-shadow:0 8px 20px #00202833;max-height:48vh;overflow:auto;padding:12px 18px}
+.resultado-cv{display:block;width:100%;padding:9px;border-bottom:1px solid var(--linea)}
+.resultado-cv small{display:block;color:var(--suave)}
+.resultado-cv:hover{background:var(--crema2)}
+@media(max-width:650px){#buscadorCV{padding:6px 10px;flex-wrap:wrap}#buscadorCV label{font-size:12px}}
